@@ -1,0 +1,25 @@
+[project]
+name = "openai-agents-starter"
+version = "0.1.0"
+description = "OpenAI Agents SDK learning project"
+requires-python = ">=3.11"
+dependencies = [
+    "openai-agents>=0.0.1",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.1.0",
+]
+mcp = [
+    # For MCP server examples (stdio-based)
+    # Uncomment as needed for specific servers:
+    # "mcp-server-fetch>=0.1.0",
+    # "mcp-server-time>=0.1.0",
+]
+
+[tool.uv]
+default-index = "https://pypi.org/simple"
