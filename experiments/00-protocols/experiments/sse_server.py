@@ -34,6 +34,11 @@ class SSEHandler(BaseHTTPRequestHandler):
             self.send_error(400, "Invalid Last-Event-ID")
             return
 
+        if last_event_id == 5:
+            self.send_response(204)
+            self.end_headers()
+            return
+
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
         self.send_header("Cache-Control", "no-cache")
