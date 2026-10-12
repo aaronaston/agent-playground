@@ -3,15 +3,35 @@
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+from pathlib import Path
 import time
+
+HTML = Path(__file__).with_name("sse_demo.html")
 
 
 class SSEHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
     def do_GET(self):
+        if self.path == "/":
+            page = HTML.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(page)))
+            self.end_headers()
+            self.wfile.write(page)
+            return
+
         if self.path != "/events":
             self.send_error(404, "Try /events")
+            return
+
+        try:
+            last_event_id = int(self.headers.get("Last-Event-ID", "0"))
+            if not 0 <= last_event_id <= 5:
+                raise ValueError
+        except ValueError:
+            self.send_error(400, "Invalid Last-Event-ID")
             return
 
         self.send_response(200)
@@ -21,7 +41,7 @@ class SSEHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         try:
-            for event_id in range(1, 6):
+            for event_id in range(last_event_id + 1, 6):
                 payload = json.dumps({"count": event_id, "message": "hello"})
                 message = f"id: {event_id}\nevent: update\ndata: {payload}\n\n"
                 self.wfile.write(message.encode("utf-8"))

@@ -5,7 +5,7 @@ This folder is the hands-on start of **Track B1** in [`STUDY_GUIDE.md`](../../ST
 ## Layout
 
 - `notes.md` — protocol concepts, tradeoffs, and references.
-- `experiments/sse_server.py` and `sse_client.py` — a small SSE stream and reader.
+- `experiments/sse_server.py`, `sse_client.py`, and `sse_demo.html` — a small SSE stream, Python reader, and browser client using the native `EventSource` API.
 - `experiments/websocket_server.py` and `websocket_demo.html` — a local WebSocket echo server and browser client.
 - `experiments/compare_http.py` — compare HTTP/1.1 and HTTP/2 negotiation and timing against a TLS endpoint.
 
@@ -20,7 +20,9 @@ cd experiments/00-protocols
 python experiments/sse_server.py
 ```
 
-In another terminal, read the stream with the Python client:
+Open <http://127.0.0.1:8000/> in a browser to watch events arrive through the browser's built-in `EventSource` client. The browser closes the stream after the final event; if the connection is interrupted earlier, `EventSource` reconnects using the last event ID.
+
+You can also read the stream with the Python client:
 
 ```bash
 cd experiments/00-protocols
