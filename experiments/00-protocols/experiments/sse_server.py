@@ -8,6 +8,7 @@ import time
 
 HTML = Path(__file__).with_name("sse_demo.html")
 LAST_EVENT_ID = 5
+DONE_EVENT_ID = LAST_EVENT_ID + 1
 
 
 class SSEHandler(BaseHTTPRequestHandler):
@@ -29,13 +30,13 @@ class SSEHandler(BaseHTTPRequestHandler):
 
         try:
             last_event_id = int(self.headers.get("Last-Event-ID", "0"))
-            if not 0 <= last_event_id <= LAST_EVENT_ID:
+            if not 0 <= last_event_id <= DONE_EVENT_ID:
                 raise ValueError
         except ValueError:
             self.send_error(400, "Invalid Last-Event-ID")
             return
 
-        if last_event_id == LAST_EVENT_ID:
+        if last_event_id == DONE_EVENT_ID:
             self.send_response(204)
             self.send_header("Content-Length", "0")
             self.end_headers()
@@ -54,7 +55,8 @@ class SSEHandler(BaseHTTPRequestHandler):
                 self.wfile.write(message.encode("utf-8"))
                 self.wfile.flush()
                 time.sleep(1)
-            self.wfile.write(b"event: done\ndata: {}\n\n")
+            done_event = f"id: {DONE_EVENT_ID}\nevent: done\ndata: {{}}\n\n"
+            self.wfile.write(done_event.encode("utf-8"))
             self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError):
             pass
