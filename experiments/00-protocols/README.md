@@ -20,7 +20,7 @@ cd experiments/00-protocols
 python experiments/sse_server.py
 ```
 
-Open <http://127.0.0.1:8000/> in a browser to watch events arrive through the browser's built-in `EventSource` client. The browser closes the stream after the final event; if the connection is interrupted earlier, `EventSource` reconnects using the last event ID.
+Open <http://127.0.0.1:8000/> in a browser to watch events arrive through the browser's built-in `EventSource` client. The server sends a `done` event after the updates; if the connection is interrupted earlier, `EventSource` reconnects using the last event ID.
 
 You can also read the stream with the Python client:
 

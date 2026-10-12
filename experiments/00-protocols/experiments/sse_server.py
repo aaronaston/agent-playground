@@ -7,6 +7,7 @@ from pathlib import Path
 import time
 
 HTML = Path(__file__).with_name("sse_demo.html")
+LAST_EVENT_ID = 5
 
 
 class SSEHandler(BaseHTTPRequestHandler):
@@ -28,14 +29,15 @@ class SSEHandler(BaseHTTPRequestHandler):
 
         try:
             last_event_id = int(self.headers.get("Last-Event-ID", "0"))
-            if not 0 <= last_event_id <= 5:
+            if not 0 <= last_event_id <= LAST_EVENT_ID:
                 raise ValueError
         except ValueError:
             self.send_error(400, "Invalid Last-Event-ID")
             return
 
-        if last_event_id == 5:
+        if last_event_id == LAST_EVENT_ID:
             self.send_response(204)
+            self.send_header("Content-Length", "0")
             self.end_headers()
             return
 
@@ -46,12 +48,14 @@ class SSEHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         try:
-            for event_id in range(last_event_id + 1, 6):
+            for event_id in range(last_event_id + 1, LAST_EVENT_ID + 1):
                 payload = json.dumps({"count": event_id, "message": "hello"})
                 message = f"id: {event_id}\nevent: update\ndata: {payload}\n\n"
                 self.wfile.write(message.encode("utf-8"))
                 self.wfile.flush()
                 time.sleep(1)
+            self.wfile.write(b"event: done\ndata: {}\n\n")
+            self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError):
             pass
 

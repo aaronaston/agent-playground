@@ -20,12 +20,12 @@
       item.textContent = `id=${event.lastEventId}: ${event.data}`;
       events.append(item);
 
-      if (event.lastEventId === "5") {
-        status.textContent = "Stream complete";
-        source.close();
-      } else {
-        status.textContent = "Receiving events…";
-      }
+      status.textContent = "Receiving events…";
+    });
+
+    source.addEventListener("done", () => {
+      status.textContent = "Stream complete";
+      source.close();
     });
 
     source.onerror = () => {
