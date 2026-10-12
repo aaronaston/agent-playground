@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8">
+  <title>WebSocket echo</title>
+  <h1>WebSocket echo</h1>
+  <p id="status">Disconnected</p>
+  <form id="form">
+    <label>Message <input id="message" value="Hello, WebSocket"></label>
+    <button id="send" disabled>Send</button>
+  </form>
+  <pre id="log" aria-live="polite"></pre>
+  <script>
+    const status = document.querySelector("#status");
+    const log = document.querySelector("#log");
+    const send = document.querySelector("#send");
+    const socket = new WebSocket(`ws://${location.host}/ws`);
+
+    function record(message) {
+      log.textContent += `${message}\n`;
+    }
+
+    socket.addEventListener("open", () => {
+      status.textContent = "Connected";
+      send.disabled = false;
+    });
+    socket.addEventListener("message", (event) => record(`Received: ${event.data}`));
+    socket.addEventListener("close", () => {
+      status.textContent = "Disconnected";
+      send.disabled = true;
+    });
+    socket.addEventListener("error", () => record("WebSocket error"));
+    document.querySelector("#form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const message = document.querySelector("#message").value;
+      socket.send(message);
+      record(`Sent: ${message}`);
+    });
+  </script>
+</html>
