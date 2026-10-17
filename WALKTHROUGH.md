@@ -1,0 +1,155 @@
+# Walkthrough
+
+The linear path through the [study guide](STUDY_GUIDE.md). The guide says *what* and *why*; this file says *do this next*. One step is one sitting. Steps change when a probing question changes the plan; those changes are logged in [QUESTIONS.md](QUESTIONS.md).
+
+## You are here
+
+| | |
+|---|---|
+| **Now** | Step 1.3 – HTTP/1.1 vs HTTP/2 (script runs; do the by-hand part) |
+| **Next** | Step 1.4 – SSE vs WebSockets side by side |
+| **Last done** | Step 1.2 – Tiny SSE server with resume (2026-10-17) |
+
+Legend: `[x]` done · `[~]` in progress · `[ ]` not started
+
+## Completed log
+
+| Date | Step | One-line takeaway |
+|---|---|---|
+| 2026-10-17 | 1.1 | SSE is a line-oriented text format on an ordinary HTTP response; `curl -N` shows the whole thing. |
+| 2026-10-17 | 1.2 | `Last-Event-ID` is a request header the browser adds on reconnect; resume only means something if events exist independently of connections. |
+
+---
+
+## Part 1 – Transport foundations (Track B1)
+
+Working directory: `experiments/00-protocols/`. Notes go in `notes.md` there.
+
+### [x] 1.1 Read a raw SSE stream
+Done. See `experiments/sse_server.py` and `curl -N http://127.0.0.1:8000/events`.
+
+### [x] 1.2 Tiny SSE server with resume
+Done. Server honours `Last-Event-ID`, returns 204 after the final event. Known limitation, recorded in QUESTIONS.md: the stream is a fixed script, so resume is degenerate.
+
+### [~] 1.3 HTTP/1.1 vs HTTP/2
+**Goal:** see that the protocol version is settled at connection time (ALPN), independently of what the application returns.
+
+Do:
+```bash
+python experiments/compare_http.py
+curl -v --http1.1 -o /dev/null https://httpbin.org/get 2>&1 | grep -iE 'ALPN|^> |^< HTTP'
+curl -v --http2   -o /dev/null https://httpbin.org/get 2>&1 | grep -iE 'ALPN|^> |^< HTTP'
+curl -N -v --http2 'https://httpbin.org/drip?duration=5&numbytes=5' 2>&1 | tail -20
+```
+Look for: the `ALPN: server accepted h2` line in the TLS handshake; `HTTP/2 200` vs `HTTP/1.1 200`; with `--http2`, the absence of `Transfer-Encoding: chunked` (HTTP/2 frames the body itself). The `drip` call shows bytes arriving over five seconds.
+
+Record in notes.md: three bullets on connection reuse, multiplexing, head-of-line blocking, in your own words.
+
+Done when: you can say where in the connection lifecycle the version is chosen and why a 502 still reported `HTTP version: 2`.
+
+### [ ] 1.4 SSE vs WebSockets side by side
+**Goal:** see the one structural difference: WebSockets upgrade away from HTTP; SSE never leaves it.
+
+Do:
+```bash
+python experiments/websocket_server.py        # terminal 1, then open http://127.0.0.1:8765/
+python experiments/sse_server.py              # terminal 2, then open http://127.0.0.1:8000/
+```
+In the browser dev tools Network tab, compare the two connections: the WebSocket shows `101 Switching Protocols` and an `Upgrade: websocket` header, then a Messages tab instead of a Response body. The SSE connection is a normal 200 with a body that keeps growing.
+
+Record: a two-column table in notes.md: handshake, direction, framing, browser API, proxy behaviour, HTTP/2 interaction.
+
+Done when: you can argue for SSE over WebSockets for LLM streaming without mentioning "simpler".
+
+### [ ] 1.5 Capture a Messages API stream
+**Goal:** see a real production SSE stream and notice that here the `event:` field carries meaning.
+
+Do (needs `ANTHROPIC_API_KEY` in the environment):
+```bash
+curl -N https://api.anthropic.com/v1/messages \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "content-type: application/json" \
+  -d '{"model":"claude-opus-5-5","max_tokens":200,"stream":true,
+       "messages":[{"role":"user","content":"Count to five, one number per line."}]}' \
+  | tee experiments/captures/messages-stream.txt
+```
+Look for: `message_start`, `content_block_start`, repeated `content_block_delta`, `content_block_stop`, `message_delta`, `message_stop`. Note that `event:` names the type *and* the JSON repeats it in a `type` field.
+
+Record: annotate the capture in a comment block at the top of the file: what each event is for and which ones carry usage numbers.
+
+Done when: you can explain every event in the capture.
+
+### [ ] 1.6 Capture an MCP Streamable HTTP session
+**Goal:** the bridge into Part 2. See MCP's use of SSE next to the Messages API's and notice the `event:` field is always `message`.
+
+Do: build the smallest possible MCP server with the Python SDK (`uv add mcp`), one tool that sleeps and reports progress, served over Streamable HTTP. Drive it with curl: `tools/list`, then `tools/call`. Save both the requests and responses, headers included, to `experiments/captures/mcp-session.txt`.
+
+Look for: which protocol version the SDK speaks by default (handshake family with `initialize` + `Mcp-Session-Id`, or 2026-07-28 with `_meta` and `Mcp-Method`). The `Accept` header listing both `application/json` and `text/event-stream`. Whether `tools/list` came back as JSON or as a stream.
+
+Done when: you can name every message in the capture and say which revision it is.
+
+### B1 checkpoint
+Write the "why SSE, not WebSockets, at all three layers" paragraph in notes.md. Then move the **You are here** block to 2.1.
+
+---
+
+## Part 2 – MCP protocol and features (Track B2)
+
+Working directory: `experiments/02-mcp/` (create it). Spec: https://modelcontextprotocol.io/specification/2026-07-28.
+
+### [ ] 2.1 Versions and the two families
+Read the changelogs for 2025-03-26, 2025-06-18, 2025-11-25, 2026-07-28, in order. For each, write one line: what it added, what it removed. Check `mcp_types.version` in the Python SDK for the supported list and the default.
+
+Done when: you can explain the handshake/modern split without notes.
+
+### [ ] 2.2 Minimal server, both transports
+Take the server from 1.6. Run it over stdio (drive it with a few hand-typed JSON lines) and over Streamable HTTP. If the SDK lets you pin the protocol version, capture a session in each family.
+
+Done when: two annotated captures exist, one per family.
+
+### [ ] 2.3 Tools, resources, prompts, completion
+Add one of each. Return `structuredContent` from the tool. Call all four from an SDK client, then wire the server into Claude Code and see how each primitive surfaces in the UI.
+
+Done when: you can say what a prompt is *for* that a tool isn't.
+
+### [ ] 2.4 Progress and log messages
+Make the tool take five seconds and emit `notifications/progress` and `notifications/message` along the way. Watch them arrive on the response stream before the result.
+
+Done when: the capture shows notifications preceding the result on the same stream.
+
+### [ ] 2.5 Elicitation and MRTR
+Implement a form-mode elicitation. Trace the round trip twice: as a 2025-style server-initiated `elicitation/create`, and as a 2026-07-28 `input_required` result followed by a retry.
+
+Done when: you can draw both sequence diagrams from memory.
+
+### [ ] 2.6 Sampling and why it is deprecated
+Try `sampling/createMessage` against a 2025-era client. Then read the deprecation rationale in the 2026-07-28 changelog.
+
+Done when: you can state the migration path in one sentence.
+
+### [ ] 2.7 Tasks extension
+Wrap the slow tool from 2.4 as a task. Poll it with `tasks/get`.
+
+### [ ] 2.8 Decision table
+Function tool vs MCP tool vs A2A. Fill the table in STUDY_GUIDE.md B2.7 and revisit the hypothesis at the top of the guide.
+
+### B2 checkpoint
+Tick the B2 progress log in STUDY_GUIDE.md. Move **You are here** to 3.1.
+
+---
+
+## Part 3 – Rung 1 chatbots (Track A)
+To be expanded when reached. One step per vendor: OpenAI, Anthropic, LangGraph, Microsoft. Each is a streaming multi-turn chatbot against the lowest-level API, no tools.
+
+## Part 4 – Rung 2 agents (Track A)
+To be expanded when reached. One step per vendor on the common benchmark task: one function tool, one MCP tool, one handoff.
+
+## Part 5 – A2A (Track B3)
+To be expanded when reached.
+
+## Part 6 – Keycloak and MCP authorization (Track C)
+To be expanded when reached.
+
+## Part 7 – Enterprise-managed authorization (Track D)
+To be expanded when reached.

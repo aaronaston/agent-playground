@@ -22,7 +22,7 @@ Each experiment is self-contained, reproducible, and heavily commented for learn
 | 04 | Microsoft Agent Framework | Chatbot + agent | 📋 Planned |
 | 05+ | MCP/A2A, Keycloak OAuth, enterprise-managed auth | See the study guide | 📋 Planned |
 
-See [STUDY_GUIDE.md](STUDY_GUIDE.md) for the learning outline.
+**Start here:** [WALKTHROUGH.md](WALKTHROUGH.md) says what to do next and where I am. [STUDY_GUIDE.md](STUDY_GUIDE.md) is the curriculum behind it. [QUESTIONS.md](QUESTIONS.md) logs the questions that changed the plan.
 
 ## Structure & Conventions
 

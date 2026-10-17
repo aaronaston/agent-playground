@@ -132,3 +132,6 @@ dmypy.json
 
 # uv
 .uv/
+
+# Obsidian per-machine UI state
+.obsidian/workspace*.json
