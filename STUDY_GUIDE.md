@@ -63,7 +63,7 @@ Fetch the Agent SDK overview first (https://code.claude.com/docs/en/agent-sdk/ov
 ### B1. Transport foundations (start here): SSE
 SSE appears at three layers, so learn it first and reference it elsewhere.
 1. **LLM streaming** – every Rung 1 chatbot streams over SSE (OpenAI streaming events; Anthropic `message_start` / `content_block_delta`).
-2. **MCP transports** – Streamable HTTP optionally uses SSE for server-to-client messages.
+2. **MCP transports** – Streamable HTTP optionally uses SSE for multi-message responses (and `Last-Event-ID` resume in the 2025 revisions only; removed in 2026-07-28).
 3. **A2A** – streaming task updates and push notifications.
 
 Topics:
@@ -76,8 +76,8 @@ Topics:
 - Pitfalls: proxy buffering, timeouts, idle connections
 
 Hands-on:
-- [ ] Read a raw stream with curl.
-- [ ] Implement a tiny SSE endpoint.
+- [x] Read a raw stream with curl.
+- [x] Implement a tiny SSE endpoint.
 - [ ] Compare one simple endpoint over HTTP/1.1 and HTTP/2.
 - [ ] Compare the same streaming use case over SSE and WebSockets.
 - [ ] Capture a Messages API stream.
@@ -86,18 +86,81 @@ Hands-on:
 Done when: I can explain each event in a captured stream and why SSE (not WebSockets) is used.
 
 ### B1 progress log
-- [ ] SSE wire format understood
-- [ ] `curl` can read a raw SSE stream
-- [ ] Tiny SSE endpoint implemented
+- [x] SSE wire format understood
+- [x] `curl` can read a raw SSE stream
+- [x] Tiny SSE endpoint implemented
 - [ ] HTTP/1.1 vs HTTP/2 differences observed
 - [ ] SSE vs WebSockets differences observed
 - [ ] LLM streaming captured
 - [ ] Can explain why SSE is used here instead of WebSockets
 
-### B2. MCP
-- [ ] Transports: stdio vs. Streamable HTTP; why the old HTTP+SSE transport was deprecated (single endpoint, session IDs, resumability).
-- [ ] Tools, resources, prompts; capability negotiation.
-- [ ] Function tools vs. MCP tools: when to use which.
+### B2. MCP: the protocol and its features
+MCP is JSON-RPC 2.0 in both directions over a transport. Learn it against the **current revision (2026-07-28)** but keep the 2025 family in view, because most deployed servers still speak it. Specs: https://modelcontextprotocol.io/specification/2026-07-28 and the changelog for each revision.
+
+#### B2.1 Versions and the two families
+- Five revisions, all still valid: 2024-11-05, 2025-03-26, 2025-06-18, 2025-11-25, 2026-07-28. Date-named; no central decommissioning.
+- The real seam: the four 2025-and-earlier "handshake" versions (`initialize` round trip, `Mcp-Session-Id`) vs. the "modern" 2026-07-28 shape (stateless; version and capabilities in `_meta` on every request; `server/discover`).
+- Feature lifecycle policy: Active / Deprecated / Removed, 12-month window. Deprecated registry: HTTP+SSE transport, Sampling, Roots, Logging, dynamic client registration.
+- [ ] Read the 2025-03-26, 2025-06-18, 2025-11-25 and 2026-07-28 changelogs in order; note what each removed.
+- [ ] Check which versions the Python SDK supports (`mcp_types.version`) and which one it picks by default.
+
+#### B2.2 Message model
+- Four JSON-RPC shapes: request (`id` + `method`), notification (`method`, no `id`), result, error. Every message is one SSE `data:` line or one stdio line.
+- `method` is really a message type; `notifications/*` are events wearing an RPC costume (same as LSP).
+- Correlation glue: `progressToken` in `_meta` ties `notifications/progress` to a request; `notifications/cancelled` carries `requestId`.
+- 2026-07-28: every result has `resultType` (`complete` | `input_required`); `_meta` carries protocol version, client/server info, log level, OpenTelemetry trace context.
+- [ ] Write out the full method list for 2025-06-18 and 2026-07-28 side by side; mark what was added, removed, or replaced.
+
+#### B2.3 Transports
+- stdio: newline-delimited JSON-RPC on stdin/stdout, stderr for logs. Still the default for local servers.
+- Streamable HTTP: one endpoint, every client message is a POST, the response is either `application/json` or a `text/event-stream` that ends with the JSON-RPC result. "Streamable" is a capability of the response, not a mode of the connection.
+- 2025 shape: `initialize` handshake, `Mcp-Session-Id`, optional GET stream for server-initiated messages, `Last-Event-ID` resumability.
+- 2026-07-28 shape: no sessions, no handshake, no GET stream, no resumability (re-issue the request); `subscriptions/listen` is a POST whose response stream stays open for opted-in change notifications; `Mcp-Method` / `Mcp-Name` request headers.
+- Why not WebSockets: plain HTTP keeps bearer-token headers, proxies, serverless and HTTP/2 multiplexing; a trivial server is just a JSON endpoint.
+- Origin validation (403), localhost binding, DNS rebinding.
+- [ ] Build a minimal server with the Python SDK over stdio, then over Streamable HTTP.
+- [ ] Drive the HTTP server with curl: a `tools/list`, a `tools/call`, and (2025 shape) an `initialize`; capture every header and body.
+- [ ] Capture the same session from an SDK client and compare with the curl version.
+
+#### B2.4 Server primitives
+- **Tools**: `inputSchema` / `outputSchema` (JSON Schema 2020-12), `structuredContent`, annotations (readOnly, destructive, idempotent, openWorld), icons, tool-name guidance, deterministic `tools/list` ordering, `ttlMs` / `cacheScope` on list results. Validation errors are tool-execution errors (so the model can self-correct), not protocol errors.
+- **Resources**: URIs, templates, `resources/read`; change notifications now via `subscriptions/listen` instead of `resources/subscribe`.
+- **Prompts**: server-provided prompt templates with arguments; `prompts/get` returns messages.
+- **Completion**: `completion/complete` for argument autocomplete.
+- [ ] Add one of each to the sample server; call them from an SDK client and from Claude Code.
+- [ ] Return structured output from a tool and watch how a client surfaces `structuredContent` vs. `content`.
+
+#### B2.5 Server → client interaction
+- **Progress** (`notifications/progress`) and **log messages** (`notifications/message`) ride on the originating request's response stream; log level is per-request via `_meta` in 2026-07-28.
+- **Elicitation**: server asks the user for input. Form mode (schema-driven, enums, defaults) and URL mode (out-of-band browser flow).
+- **Sampling**: server asks the client's LLM to generate (with `tools` / `toolChoice` since 2025-11-25). Deprecated in 2026-07-28; migration is "call the LLM provider directly".
+- **Roots**: client-exposed filesystem roots. Deprecated; pass paths as tool arguments instead.
+- **MRTR (Multi Round-Trip Requests)**: the 2026-07-28 replacement for all server-initiated requests. Server returns `resultType: "input_required"` with `inputRequests`; client retries the original request with `inputResponses`. `requestState` carries server correlation.
+- **Cancellation**: `notifications/cancelled`; a dropped HTTP connection is *not* a cancel.
+- [ ] Implement a long-running tool that emits progress and log messages; watch them arrive before the result.
+- [ ] Implement an elicitation (form mode) and trace the round trip on the wire, once as a 2025-style server-initiated request and once as MRTR.
+- [ ] Try sampling against a 2025-era client to see what is being deprecated and why.
+
+#### B2.6 Extensions and long-running work
+- Extensions field in capabilities; the tasks extension (`io.modelcontextprotocol/tasks`): server returns a task handle, client polls `tasks/get`, sends input with `tasks/update`.
+- [ ] Wrap the long-running tool from B2.5 as a task and poll it.
+
+#### B2.7 Function tools vs. MCP tools
+- In-process function tools share state and process; MCP crosses a protocol boundary with separate auth and lifecycle (ties to the hypothesis at the top).
+- [ ] Decision table: when a function tool, when an MCP server, when A2A.
+
+Done when: I can read a captured MCP session and name every message, say which revision it is, and explain what the 2026-07-28 revision removed and why.
+
+### B2 progress log
+- [ ] Changelogs read; two families understood
+- [ ] Minimal server running over stdio and Streamable HTTP
+- [ ] Wire captures: curl and SDK, both families
+- [ ] Tools, resources, prompts, completion implemented and called
+- [ ] Progress and log messages observed mid-request
+- [ ] Elicitation round trip traced (server-initiated and MRTR)
+- [ ] Sampling tried and its deprecation understood
+- [ ] Task extension tried
+- [ ] Decision table written
 
 ### B3. A2A
 - [ ] Agent cards, tasks, streaming and push notifications.
@@ -139,12 +202,13 @@ Output: a sequence diagram and a comparison table of 9728 discovery, 8693 exchan
 ## Suggested order
 
 1. Track B1: SSE and basic LLM streaming.
-2. Rung 1 chatbots for all four vendors.
-3. Rung 2 agents: OpenAI (finish 01), Anthropic, LangGraph, Microsoft.
-4. Rest of Track B: MCP transports and A2A.
-5. Track C (Keycloak).
-6. Track D (enterprise-managed authorization).
-7. Revisit the hypothesis and write conclusions.
+2. Track B2: MCP protocol and features (while the protocol questions are fresh; its first hands-on closes B1's last checkbox).
+3. Rung 1 chatbots for all four vendors.
+4. Rung 2 agents: OpenAI (finish 01), Anthropic, LangGraph, Microsoft.
+5. Track B3: A2A.
+6. Track C (Keycloak).
+7. Track D (enterprise-managed authorization).
+8. Revisit the hypothesis and write conclusions.
 
 ## Glossary
 
@@ -154,6 +218,10 @@ Output: a sequence diagram and a comparison table of 9728 discovery, 8693 exchan
 | MCP | Model Context Protocol: agent-to-tool protocol |
 | A2A | Agent2Agent protocol: agent-to-agent protocol |
 | Streamable HTTP | Current MCP HTTP transport; single endpoint, optional SSE |
+| Elicitation | MCP: server asks the user for input (form mode or URL mode) |
+| Sampling | MCP: server asks the client's LLM to generate; deprecated in 2026-07-28 |
+| MRTR | Multi Round-Trip Requests: 2026-07-28 pattern where a result says `input_required` and the client retries with answers |
+| SEP | Specification Enhancement Proposal: how MCP changes are proposed |
 | RFC 9728 | OAuth Protected Resource Metadata |
 | RFC 8414 | OAuth Authorization Server Metadata |
 | RFC 8707 | Resource Indicators for OAuth 2.0 |
