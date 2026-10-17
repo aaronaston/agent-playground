@@ -15,10 +15,14 @@ Each experiment is self-contained, reproducible, and heavily commented for learn
 
 | # | Framework | Topic | Status |
 |---|-----------|-------|--------|
-| 01 | OpenAI Agents SDK (Python) | Basics: Agent, Runner, function tools, MCP tools, handoffs, streaming | 🚧 In Progress |
-| 02 | (Coming) | Anthropic Claude with Tools | 📋 Planned |
-| 03 | (Coming) | Langgraph | 📋 Planned |
-| 04 | (Coming) | Agent-to-agent patterns | 📋 Planned |
+| 00 | Protocols | SSE, WebSockets, HTTP/1.1 vs HTTP/2 warm-up ([experiments/00-protocols](experiments/00-protocols)) | ✅ Done |
+| 01 | OpenAI | Chatbot (Responses API) + Agents SDK agent | 🚧 In Progress |
+| 02 | Anthropic | Chatbot (Messages API) + Claude Agent SDK agent | 📋 Planned |
+| 03 | LangGraph | Chatbot + agent graph | 📋 Planned |
+| 04 | Microsoft Agent Framework | Chatbot + agent | 📋 Planned |
+| 05+ | MCP/A2A, Keycloak OAuth, enterprise-managed auth | See the study guide | 📋 Planned |
+
+See [STUDY_GUIDE.md](STUDY_GUIDE.md) for the learning outline.
 
 ## Structure & Conventions
 
