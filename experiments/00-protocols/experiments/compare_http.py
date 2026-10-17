@@ -4,7 +4,7 @@
 import subprocess
 import sys
 
-DEFAULT_URL = "https://nghttp2.org/httpbin/stream/5"
+DEFAULT_URL = "https://httpbin.org/stream/5"
 WRITE_OUT = (
     "\nHTTP version: %{http_version}\n"
     "Status: %{http_code}\n"
