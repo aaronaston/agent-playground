@@ -136,6 +136,11 @@ Wrap the slow tool from 2.4 as a task. Poll it with `tasks/get`.
 ### [ ] 2.8 Decision table
 Function tool vs MCP tool vs A2A. Fill the table in STUDY_GUIDE.md B2.7 and revisit the hypothesis at the top of the guide.
 
+### [ ] 2.9 Agent as tool
+Build an MCP server whose tool is itself an LLM loop (OpenAI Responses, own tools), and a client harness that declares `elicitation.form`, tries to answer an `input_required` from its own context, and otherwise escalates to stdin and retries. Narrated capture on both hops. Then the same with the tasks extension. Design note and the open questions: `experiments/02-mcp/notes/agent-as-tool-elicitation.md`.
+
+Done when: you can say, for a nested elicitation, where every piece of state lives and which TTL expires first.
+
 ### B2 checkpoint
 Tick the B2 progress log in STUDY_GUIDE.md. Move **You are here** to 3.1.
 
