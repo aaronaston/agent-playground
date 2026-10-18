@@ -128,7 +128,7 @@ Make the tool take five seconds and emit `notifications/progress` and `notificat
 Done when: the capture shows notifications preceding the result on the same stream.
 
 ### [ ] 2.5 Elicitation and MRTR
-Implement a form-mode elicitation. Trace the round trip twice: as a 2025-style server-initiated `elicitation/create`, and as a 2026-07-28 `input_required` result followed by a retry.
+Implement a form-mode elicitation. Trace the round trip twice: as a 2025-style server-initiated `elicitation/create`, and as a 2026-07-28 `input_required` result followed by a retry. Compare each capture against the simulated transcript in `experiments/02-mcp/transcripts/elicitation-two-ways.md` and fix whatever the simulation got wrong.
 
 Done when: you can draw both sequence diagrams from memory.
 
