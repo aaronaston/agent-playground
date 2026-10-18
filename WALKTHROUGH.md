@@ -79,6 +79,8 @@ Done 2026-10-18 with the OpenAI Responses API (`gpt-4.1-mini`), since that is th
 
 What it showed: `event:` names the type and the JSON repeats it; no `id:` lines, ordering is a `sequence_number` in the payload; a fixed opening and closing wrap a run of one-token deltas; usage only in the final event; first byte at 2.4 s, the whole stream in 0.16 s after that.
 
+Also captured: a streamed tool call and its follow-up (`experiments/capture_tool_call.py`, annotated in `captures/openai-tool-call-stream.annotated.md`). Exchange 1 ends `completed` with a `function_call` item instead of text; the client runs the tool; exchange 2 resends the conversation plus the result. Keep this next to the MRTR transcript in `experiments/02-mcp/transcripts/` when doing step 2.5: it is the same pattern.
+
 ### [ ] 1.6 Capture an MCP Streamable HTTP session
 **Goal:** the bridge into Part 2. See MCP's use of SSE next to the Messages API's and notice the `event:` field is always `message`.
 

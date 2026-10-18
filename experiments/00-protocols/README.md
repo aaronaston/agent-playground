@@ -13,6 +13,7 @@ This folder is the hands-on start of **Track B1** in [`STUDY_GUIDE.md`](../../ST
 - `experiments/multiplex_demo.py` — several requests at once: connection count, the browser's six-per-host cap, and head-of-line blocking.
 - `experiments/multiplex_viz.py` — renders a `--json` capture from `multiplex_demo.py` as an HTML timeline (lanes per TCP connection, bars split into connect / TLS / wait / body).
 - `experiments/capture_messages_stream.sh` — one streaming call to the OpenAI Responses API, captured raw with headers; annotated copy in `experiments/captures/`.
+- `experiments/capture_tool_call.py` — a streamed call that ends in a function call, then the follow-up request carrying the tool result; the LLM-side twin of MCP's MRTR.
 - `experiments/lb_demo/` — two backends behind nginx as an L7 (HTTP) proxy and as an L4 (TCP) proxy; shows that an L7 proxy routes each request on one client connection independently. Needs Docker.
 
 ## Run the experiments

@@ -104,3 +104,8 @@ Format: **Q** · **A** (a few lines) · **Changed** (what moved in WALKTHROUGH.m
 **Q: So the Streamable HTTP changes bring MCP in line with what streaming LLM calls already did?**
 **A:** Yes. Both are now: one POST, response is JSON or an SSE stream scoped to that request, terminal event ends it, no resume (re-issue), ordering in the payload, no server state beyond a server-minted handle (`previous_response_id` / `requestState`), long work via background-plus-poll (tasks extension). MRTR is function calling: the response ends saying "I need X", the client sends a new request with X. The 2025 transport did the architectural step; 2026 removed sessions, the GET stream and resumability. Remaining differences: MCP keeps a push channel (`subscriptions/listen`) where LLM APIs use webhooks, and MCP's envelope is JSON-RPC inside `event: message` rather than named events.
 **Changed:** nothing.
+
+**Q: Can you show a capture with a tool call?**
+**A:** `experiments/00-protocols/experiments/captures/openai-tool-call-stream.txt`, with annotation. Exchange 1's stream ends with `status: completed` and a `function_call` item (`get_weather`, `call_id`), the arguments streamed in five deltas. The client runs the tool. Exchange 2 resends the user message, the function_call item, and a `function_call_output` keyed by `call_id`; the model answers in text. Two independent HTTP exchanges, input tokens 48 → 91. This is MRTR with the roles mirrored: here the model asks the client to run a tool; in MCP the server asks the client for input.
+**Changed:** step 1.5 notes the second capture; step 2.5 should compare it with the MRTR transcript.
+
