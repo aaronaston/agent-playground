@@ -138,3 +138,7 @@ Format: **Q** · **A** (a few lines) · **Changed** (what moved in WALKTHROUGH.m
 **A:** Built the study aid: `experiments/02-mcp/notes/trace-to-spec.md`, a two-hour reading order through the 2026-07-28 Basic section plus tools, and a table mapping every line of the 1.6 trace to the spec sentence behind it. Four extra probes filled gaps the trace had not covered: no `_meta` → `-32602`/400; elicitation without the declared capability → `-32021` with `data.requiredCapabilities`; unknown tool → the SDK returns `isError: true` where the spec's example shows a protocol error; bad argument type → `isError: true` with the validation message. Self-check with answers at the end.
 **Changed:** 2.1 in progress, pointer updated.
 
+
+**Q: Where is `_meta` communicated? HTTP header? JSON-RPC property?**
+**A:** JSON-RPC property in the body: `params._meta` on requests and notifications, `result._meta` on results. Transport-independent (stdio has no headers at all). Two of its values are additionally *mirrored* into HTTP headers for proxies that route without parsing JSON: `MCP-Protocol-Version` (from `_meta.protocolVersion`) and `Mcp-Method` / `Mcp-Name` (from `method` / `params.name`). The body is the source of truth; the server checks the headers agree (step 4a: `-32020`). `progressToken` lives in `_meta` too.
+**Changed:** nothing.
