@@ -43,3 +43,9 @@ Format: **Q** · **A** (a few lines) · **Changed** (what moved in WALKTHROUGH.m
 **Q: What is httpbin.org? Why `/stream/5`?**
 **A:** Public HTTP echo/test service (Kenneth Reitz, now hosted by Postman). `/stream/5` sends five JSON lines as a chunked response, so it exercises body framing differences between HTTP/1.1 and HTTP/2. It is not SSE. `/drip` is better for watching bytes arrive over time.
 **Changed:** step 1.3 now includes a `drip` call.
+
+## 2026-10-18
+
+**Q: I'm "failing" step 1.3. I see the version requested and served, and slightly different status lines, but no significant differences.**
+**A:** Correct diagnosis: the exercise was wrong, not the observation. One request per protocol can only show which version ALPN negotiated. The real differences are properties of many requests sharing a connection: HTTP/1.1 needs one connection per concurrent request and serialises responses on each; HTTP/2 multiplexes streams on one connection. Observed with `curl -Z`: 4 connections vs 1; eight 2-second requests in two waves (2 s, 4 s) under a six-connection cap vs one wave; a fast request stuck behind a slow one for 3.3 s vs finishing at 0.1 s.
+**Changed:** new script `experiments/00-protocols/experiments/multiplex_demo.py`; step 1.3 rewritten around it; observed numbers recorded in notes.md. Lesson for writing future steps: a "look for" must name an observable that differs, not just a command to run.

@@ -6,7 +6,7 @@ The linear path through the [study guide](STUDY_GUIDE.md). The guide says *what*
 
 | | |
 |---|---|
-| **Now** | Step 1.3 – HTTP/1.1 vs HTTP/2 (script runs; do the by-hand part) |
+| **Now** | Step 1.3 – HTTP/1.1 vs HTTP/2 (run `multiplex_demo.py`; the first version of this step could not show the differences) |
 | **Next** | Step 1.4 – SSE vs WebSockets side by side |
 | **Last done** | Step 1.2 – Tiny SSE server with resume (2026-10-17) |
 
@@ -32,20 +32,27 @@ Done. See `experiments/sse_server.py` and `curl -N http://127.0.0.1:8000/events`
 Done. Server honours `Last-Event-ID`, returns 204 after the final event. Known limitation, recorded in QUESTIONS.md: the stream is a fixed script, so resume is degenerate.
 
 ### [~] 1.3 HTTP/1.1 vs HTTP/2
-**Goal:** see that the protocol version is settled at connection time (ALPN), independently of what the application returns.
+**Goal:** see the differences that matter, which only appear when several requests share a connection: connection count, the browser's per-host cap, and head-of-line blocking. A single request can only show the negotiated version.
 
 Do:
 ```bash
-python experiments/compare_http.py
-curl -v --http1.1 -o /dev/null https://httpbin.org/get 2>&1 | grep -iE 'ALPN|^> |^< HTTP'
-curl -v --http2   -o /dev/null https://httpbin.org/get 2>&1 | grep -iE 'ALPN|^> |^< HTTP'
-curl -N -v --http2 'https://httpbin.org/drip?duration=5&numbytes=5' 2>&1 | tail -20
+python experiments/compare_http.py          # one request each: only shows ALPN picked the version
+python experiments/multiplex_demo.py        # A, B, C below; ~15 s against httpbin.org
 ```
-Look for: the `ALPN: server accepted h2` line in the TLS handshake; `HTTP/2 200` vs `HTTP/1.1 200`; with `--http2`, the absence of `Transfer-Encoding: chunked` (HTTP/2 frames the body itself). The `drip` call shows bytes arriving over five seconds.
+Look for, in the demo output:
+- **A.** Four parallel GETs. HTTP/1.1: `TCP connections: 4`. HTTP/2: `TCP connections: 1` and `stream ids: 1, 3, 5, 7`. Same work, one socket.
+- **B.** Eight 2-second requests with HTTP/1.1 capped at six connections (what a browser allows per host): six finish at about 2 s, two more at about 4 s. HTTP/2: all eight finish at about 2 s on one connection with eight streams. This is the cap that made the Comet era painful and that SSE over HTTP/1.1 still hits.
+- **C.** A 3-second request then an instant one on one connection. HTTP/1.1: the instant one finishes at about 3.3 s, because responses on a connection are strictly ordered. HTTP/2: it finishes at about 0.1 s while the slow stream is still open. That is head-of-line blocking, and its absence.
 
-Record in notes.md: three bullets on connection reuse, multiplexing, head-of-line blocking, in your own words.
+Then confirm where the version gets chosen:
+```bash
+curl -v --http2 -o /dev/null https://httpbin.org/get 2>&1 | grep -E 'ALPN|^< HTTP'
+```
+The `ALPN: server accepted h2` line is inside the TLS handshake, before any request is sent. That is why the 502 run still reported `HTTP version: 2`.
 
-Done when: you can say where in the connection lifecycle the version is chosen and why a 502 still reported `HTTP version: 2`.
+Record in notes.md: the three numbers from B and C, and one sentence each on what connection reuse, multiplexing, and head-of-line blocking mean, in your own words. Note the caveat: all HTTP/2 streams still share one TCP connection, so packet loss stalls them together (HTTP/3 is the fix for that; out of scope).
+
+Done when: you can say why a page that opens eight SSE streams behaves differently over HTTP/1.1 and HTTP/2, and where in the connection lifecycle the version is decided.
 
 ### [ ] 1.4 SSE vs WebSockets side by side
 **Goal:** see the one structural difference: WebSockets upgrade away from HTTP; SSE never leaves it.

@@ -54,6 +54,16 @@ HTTP defines request/response semantics; HTTP/1.1 and HTTP/2 transport those sem
 
 HTTP/2 multiplexing can reduce the need for parallel connections, but it does not eliminate latency, TCP loss effects, or server limits. HTTP/3 uses QUIC and changes the transport-level loss behavior; it is outside this warm-up.
 
+### What `multiplex_demo.py` showed (2026-10-18, against httpbin.org)
+
+| Demo | HTTP/1.1 | HTTP/2 |
+|---|---|---|
+| A: 4 parallel GETs | 4 TCP connections | 1 connection, streams 1, 3, 5, 7 |
+| B: 8 × `/delay/2`, six-connection cap | two waves: 6 done at ~2.2 s, 2 more at ~4.2–4.5 s | one wave: all 8 done at ~2.1–2.4 s, streams 1–15 |
+| C: `/delay/3` then `/get`, one connection | `/get` finished at ~3.3 s (queued behind the slow one) | `/get` finished at ~0.1 s while `/delay/3` was still open |
+
+Why it matters here: every SSE stream holds a response open for its whole life. Over HTTP/1.1 that permanently consumes one of the browser's ~6 connections to that host, so a page with several live streams starves its other requests. Over HTTP/2 each stream is just another stream id on the one connection. Demo C is the mechanism: on HTTP/1.1 nothing else can use a connection while a response is in flight, and an SSE response is in flight indefinitely.
+
 ## Practical tradeoffs and pitfalls
 
 - **Connection reuse and multiplexing:** Reuse avoids repeated setup. HTTP/2 can multiplex concurrent requests; SSE occupies an open response stream, while a WebSocket uses a long-lived upgraded connection.
