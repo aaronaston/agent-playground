@@ -53,3 +53,7 @@ Format: **Q** · **A** (a few lines) · **Changed** (what moved in WALKTHROUGH.m
 **Q: Why is it called the "Comet era"?**
 **A:** A pun on Ajax: both are scouring-powder brands. Jesse James Garrett coined Ajax (2005) for client-pull; Alex Russell coined Comet (2006) for server-push over held-open HTTP. Umbrella term for long polling, forever-frame, XHR streaming. The era ends when `EventSource` (HTML5, ~2009–2011) and WebSockets (RFC 6455, Dec 2011) gave browsers native push. Early browsers allowed two connections per host, which is why the cap in demo B mattered so much.
 **Changed:** nothing.
+
+**Q: Why are the HTTP/2 stream IDs odd numbers only?**
+**A:** RFC 9113 uses parity to say who opened the stream: client-initiated are odd, server-initiated are even, each side counts upward independently so no coordination is needed. Stream 0 is the connection itself. Even streams exist only for server push, which is effectively dead (Chrome removed it in 2022), so in practice you only see odd. IDs start at 1 over TLS/ALPN (an h2c upgrade would consume 1 implicitly and start at 3), never reset, and exhausting the 31-bit space forces a new connection.
+**Changed:** nothing.
