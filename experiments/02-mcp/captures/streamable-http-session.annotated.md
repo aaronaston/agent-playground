@@ -1,10 +1,13 @@
 # Annotated: one MCP server, both protocol families, over Streamable HTTP (2026-10-18)
 
-Raw capture: [`streamable-http-session.txt`](streamable-http-session.txt), produced by
-`capture_session.sh` against `server.py` (mcp SDK 2.3.0, `MCPServer`, one tool
-`slow_count` that logs and reports progress once a second). Everything is `curl -i -N`
-over plain HTTP/1.1 to uvicorn on localhost, so there is no TLS, no ALPN and no HTTP/2;
-the body framing is `Transfer-Encoding: chunked`.
+Raw trace: [`streamable-http-session.txt`](streamable-http-session.txt), produced by
+`trace_session.py` against `server.py` (mcp SDK 2.3.0, `MCPServer`, one tool
+`slow_count` that logs and reports progress once a second). The trace script opens the
+TCP connections itself and labels every line `→` (client sent) or `←` (server sent, with
+elapsed time), so direction and connection boundaries are explicit. Plain HTTP/1.1 to
+uvicorn on localhost: no TLS, no ALPN, no HTTP/2; streamed bodies use
+`Transfer-Encoding: chunked`. Part A puts three requests on one connection; Part B opens
+a new connection per request (seven connections in total).
 
 The same server answered a 2026-07-28 client (Part A) and a 2025-06-18 client (Part B)
 without configuration. The SDK picks the family from the request.
@@ -60,7 +63,7 @@ look exactly the same in both families.
 Note the server log: it created a transport for the request and immediately terminated
 it. Sessions cost something even when rejected.
 
-**B5 `GET` and `DELETE`.** The GET opened the 2025 standalone stream: `200`,
+**B5 `GET` and B6 `DELETE`.** The GET opened the 2025 standalone stream: `200`,
 `text/event-stream`, and then silence until curl's 5-second timeout, because nothing
 server-initiated happened. The DELETE ended the session with a `200`; the log shows
 "Terminating session".

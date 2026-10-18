@@ -117,3 +117,8 @@ Format: **Q** · **A** (a few lines) · **Changed** (what moved in WALKTHROUGH.m
 **Q: What is `uv`?**
 **A:** Astral's Rust-based Python package and project manager (2024), replacing pip, venv, pip-tools and pyenv in one fast binary. `pyproject.toml` declares wants; `uv.lock` pins the exact resolved set so `uv sync` reproduces the environment; `uv run` executes inside the project venv without activation. Node mapping: package.json / package-lock.json / npm install / npm ci. Already the repo's convention; installed via Homebrew.
 **Changed:** nothing.
+
+**Q: Running 1.6, I can't tell which messages are from the client and which from the server, or how many connections there are. The trace isn't enough.**
+**A:** Agreed; the curl-based capture had no narration. Replaced it with `experiments/02-mcp/trace_session.py`, which opens the sockets itself and prints: a banner per step naming the MCP call and the expectation; the full HTTP request with `→` on every line and the JSON-RPC body labelled ("request id=1 method=tools/list"); the response with `←` on every line, a timestamp on the status line and on each SSE event, and each payload labelled as a notification, result or error; and `[conn #N] opened/closed` lines. Part A rides three requests on one connection; Part B opens one per request; the summary counts them (7).
+**Changed:** `capture_session.sh` removed; README, annotation and step 1.6 point at the trace script. Lesson for future steps: a capture must show direction, timing and connection boundaries, or it is not a capture the reader can learn from.
+

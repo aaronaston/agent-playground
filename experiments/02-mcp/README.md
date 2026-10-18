@@ -13,15 +13,19 @@ uv sync
 ## What is here
 
 - `server.py` – the smallest useful server: one tool, `slow_count(n)`, that logs and reports progress once a second. `uv run python server.py` serves Streamable HTTP on `http://127.0.0.1:8000/mcp`; add `stdio` to speak stdio instead.
-- `capture_session.sh` – drives the running server with curl as a 2026-07-28 client and then as a 2025-06-18 client, saving every header and byte to `captures/streamable-http-session.txt`. Annotated in `captures/streamable-http-session.annotated.md`.
+- `trace_session.py` – drives the running server by hand over raw TCP sockets, first as a 2026-07-28 client and then as a 2025-06-18 client, and narrates every byte: `→` lines are what the client sent, `←` lines are what the server sent with the time since the request, and each connection is numbered so you can see which request rode on which socket. Saves to `captures/streamable-http-session.txt`; commentary in `captures/streamable-http-session.annotated.md`.
 - `transcripts/elicitation-two-ways.md` – a simulated HTTP/2 transcript of a tool call that needs user input, in the 2025 (server request on the stream) and 2026 (MRTR retry) styles. To be checked against a real capture in step 2.5.
 
 ## Run the capture yourself
 
 ```bash
 uv run python server.py            # terminal 1
-./capture_session.sh               # terminal 2; ~15 s
+uv run python trace_session.py     # terminal 2; ~12 s
 ```
+
+## Reading the trace
+
+Each step has a banner saying what MCP call is being made and what to expect. Under it, the HTTP request the client wrote (every header, then the JSON-RPC body pretty-printed and labelled "request id=N method=..."), then the HTTP response as it arrived: status line and headers, then either a JSON body or, for a stream, each SSE event with a timestamp and its JSON-RPC payload labelled as a notification or a result. Connection lines (`[conn #N] opened` / `closed`) mark the TCP boundaries. Part A deliberately puts three requests on one connection; Part B opens a fresh connection per request.
 
 ## Notes so far
 

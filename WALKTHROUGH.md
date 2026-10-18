@@ -83,7 +83,7 @@ What it showed: `event:` names the type and the JSON repeats it; no `id:` lines,
 Also captured: a streamed tool call and its follow-up (`experiments/capture_tool_call.py`, annotated in `captures/openai-tool-call-stream.annotated.md`). Exchange 1 ends `completed` with a `function_call` item instead of text; the client runs the tool; exchange 2 resends the conversation plus the result. Keep this next to the MRTR transcript in `experiments/02-mcp/transcripts/` when doing step 2.5: it is the same pattern.
 
 ### [x] 1.6 Capture an MCP Streamable HTTP session
-Done 2026-10-18. Server: `experiments/02-mcp/server.py` (mcp SDK 2.3.0, one tool that logs and reports progress). Capture script and annotation: `experiments/02-mcp/capture_session.sh`, `captures/streamable-http-session.*`.
+Done 2026-10-18. Server: `experiments/02-mcp/server.py` (mcp SDK 2.3.0, one tool that logs and reports progress). Trace script and annotation: `experiments/02-mcp/trace_session.py`, `captures/streamable-http-session.*`. The trace labels every line by direction (`→` client, `←` server), timestamps the server's bytes, and numbers the TCP connections, so you can see that each MCP message is its own HTTP request and that Part A's three requests share one connection while Part B uses one per request.
 
 What it showed: the released SDK speaks 2026-07-28 by default and still answers 2025 handshake clients from the same server. `tools/list` came back as plain JSON; only the slow tool call got an SSE stream, with `notifications/message` and `notifications/progress` arriving once a second before the result. `event:` is always `message`. Omitting `Mcp-Method` (2026) or `Mcp-Session-Id` (2025) is a 400. `ctx.info()` warns that logging is deprecated.
 
