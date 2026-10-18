@@ -6,7 +6,7 @@ The linear path through the [study guide](STUDY_GUIDE.md). The guide says *what*
 
 | | |
 |---|---|
-| **Now** | Step 2.1 – MCP versions and the two families (read the four changelogs; you have already seen both families on the wire) |
+| **Now** | Step 2.1 – the current protocol from the spec, with the 1.6 trace open beside it |
 | **Next** | Step 2.2 – finish the transport pair: stdio by hand, and an SDK client capture |
 | **Last done** | Step 1.6 and the B1 checkpoint – MCP server built, both protocol families captured; Part 1 complete (2026-10-18) |
 
@@ -83,9 +83,9 @@ What it showed: `event:` names the type and the JSON repeats it; no `id:` lines,
 Also captured: a streamed tool call and its follow-up (`experiments/capture_tool_call.py`, annotated in `captures/openai-tool-call-stream.annotated.md`). Exchange 1 ends `completed` with a `function_call` item instead of text; the client runs the tool; exchange 2 resends the conversation plus the result. Keep this next to the MRTR transcript in `experiments/02-mcp/transcripts/` when doing step 2.5: it is the same pattern.
 
 ### [x] 1.6 Capture an MCP Streamable HTTP session
-Done 2026-10-18. Server: `experiments/02-mcp/server.py` (mcp SDK 2.3.0, one tool that logs and reports progress). Trace script and annotation: `experiments/02-mcp/trace_session.py`, `captures/streamable-http-session.*`. The trace labels every line by direction (`→` client, `←` server), timestamps the server's bytes, and numbers the TCP connections, so you can see that each MCP message is its own HTTP request and that Part A's three requests share one connection while Part B uses one per request.
+Done 2026-10-18. Server: `experiments/02-mcp/server.py` (mcp SDK 2.3.0, one tool that logs and reports progress). Trace script and annotation: `experiments/02-mcp/trace_session.py`, `captures/streamable-http-session.*`. The trace labels every line by direction (`→` client, `←` server), timestamps the server's bytes, and numbers the TCP connections, so you can see that each MCP message is its own HTTP request.
 
-What it showed: the released SDK speaks 2026-07-28 by default and still answers 2025 handshake clients from the same server. `tools/list` came back as plain JSON; only the slow tool call got an SSE stream, with `notifications/message` and `notifications/progress` arriving once a second before the result. `event:` is always `message`. Omitting `Mcp-Method` (2026) or `Mcp-Session-Id` (2025) is a 400. `ctx.info()` warns that logging is deprecated.
+What it showed (protocol 2026-07-28): no handshake; `server/discover` is the optional opener; `tools/list` came back as plain JSON; only the slow tool call got an SSE stream, with `notifications/message` and `notifications/progress` once a second before the result; `subscriptions/listen` is the one long-lived stream, and a `tools/list_changed` arrived on it when another connection triggered a change. Rejections: missing `Mcp-Method` → `-32020`, unknown version → `-32022` with the supported list, `GET` → `405`. The 2025 handshake family is available behind `--legacy` for recognising older servers.
 
 ### [x] B1 checkpoint
 Draft paragraph added to `experiments/00-protocols/notes.md` ("Why SSE at all three layers"). Rewrite it in your own words when you disagree with any of it; that is the test.
@@ -94,12 +94,14 @@ Draft paragraph added to `experiments/00-protocols/notes.md` ("Why SSE at all th
 
 ## Part 2 – MCP protocol and features (Track B2)
 
-Working directory: `experiments/02-mcp/` (create it). Spec: https://modelcontextprotocol.io/specification/2026-07-28.
+Working directory: `experiments/02-mcp/`. Spec: https://modelcontextprotocol.io/specification/2026-07-28.
 
-### [ ] 2.1 Versions and the two families
-Read the changelogs for 2025-03-26, 2025-06-18, 2025-11-25, 2026-07-28, in order. For each, write one line: what it added, what it removed. Check `mcp_types.version` in the Python SDK for the supported list and the default.
+**Latest first.** Everything in this part is done against 2026-07-28. Earlier revisions appear only where you need to recognise them in the wild (the `--legacy` trace, the changelog reading in 2.1).
 
-Done when: you can explain the handshake/modern split without notes.
+### [ ] 2.1 The current protocol, then where it came from
+Read the 2026-07-28 spec's Basic section (lifecycle, `_meta`, transports, MRTR, subscriptions) with the trace from 1.6 open beside it; match every message in the trace to its section. Then read the 2026-07-28 changelog once, to know what you would see on an older server and why it was removed. The earlier changelogs are optional background.
+
+Done when: you can name every message in the trace from the spec, and say in one sentence each what sessions, the GET stream, resumability and server-initiated requests were replaced with.
 
 ### [~] 2.2 Minimal server, both transports
 Streamable HTTP captures for both families exist from 1.6. Remaining: run `server.py stdio` and drive it with hand-typed JSON lines; capture a session from an SDK *client* and compare with the curl one.

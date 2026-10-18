@@ -1,95 +1,104 @@
-# Annotated: one MCP server, both protocol families, over Streamable HTTP (2026-10-18)
+# Annotated: an MCP 2026-07-28 session over Streamable HTTP (2026-10-18)
 
 Raw trace: [`streamable-http-session.txt`](streamable-http-session.txt), produced by
-`trace_session.py` against `server.py` (mcp SDK 2.3.0, `MCPServer`, one tool
-`slow_count` that logs and reports progress once a second). The trace script opens the
-TCP connections itself and labels every line `→` (client sent) or `←` (server sent, with
+`trace_session.py` against `server.py` (mcp SDK 2.3.0). The script opens the TCP
+connections itself and labels every line `→` (client sent) or `←` (server sent, with
 elapsed time), so direction and connection boundaries are explicit. Plain HTTP/1.1 to
-uvicorn on localhost: no TLS, no ALPN, no HTTP/2; streamed bodies use
-`Transfer-Encoding: chunked`. Part A puts three requests on one connection; Part B opens
-a new connection per request (seven connections in total).
+uvicorn on localhost: no TLS, no HTTP/2; streamed bodies use chunked encoding.
 
-The same server answered a 2026-07-28 client (Part A) and a 2025-06-18 client (Part B)
-without configuration. The SDK picks the family from the request.
+This protocol version has **no handshake and no sessions**. Every request carries the
+protocol version, client identity and capabilities in `params._meta`, and mirrors its
+method into the `Mcp-Method` header so proxies can route without parsing JSON.
 
-## Part A: 2026-07-28, stateless
+## Part 1: discovery, listing, a streamed call. One connection, three requests.
 
-**A1 `tools/list`.** No `initialize` first. The request carries protocol version, client
-info, capabilities and log level in `params._meta`, and mirrors the method into the
-`Mcp-Method` header. The server answered with **plain `application/json`**, 575 bytes,
-no SSE at all: nothing to say mid-request, so no stream. The result has the 2026 fields
-`resultType: "complete"` and `cacheScope: "private"`.
+**1 `server/discover`.** Optional, and the only thing resembling an opening. Plain JSON
+back: the server's capabilities, `supportedVersions: ["2026-07-28"]`, its identity in
+`_meta.serverInfo`, and the 2026 result fields `resultType: "complete"`, `cacheScope`,
+`ttlMs`. A client can call this first to choose a version, or skip it and just send
+requests.
 
-**A2 `tools/call slow_count(2)`.** Same headers plus `Mcp-Name: slow_count`, and a
-`progressToken` in `_meta`. This time the server chose `text/event-stream`:
+**2 `tools/list`.** Plain JSON again, 575 bytes: two tools with `inputSchema` and
+`outputSchema`. Nothing to say mid-request, so no stream.
+
+**3 `tools/call slow_count(2)`** with `Mcp-Name: slow_count` and a `progressToken`.
+Now the server chose `text/event-stream`:
 
 ```
-headers   content-type: text/event-stream, cache-control: no-cache, no-transform,
-          x-accel-buffering: no, Transfer-Encoding: chunked
-t=0.0s    notifications/message   "starting to count to 2"
-t=1.0s    notifications/progress  1/2 "at 1"
-          notifications/message   "reached 1"
-t=2.0s    notifications/progress  2/2 "at 2"
-          notifications/message   "reached 2"
-          result id 2             content + structuredContent, resultType complete,
-                                  _meta.serverInfo {study-server 0.1.0}
-stream closed; curl: first byte 0.002 s, total 2.007 s
++0.001s  headers: text/event-stream, cache-control: no-cache, no-transform, x-accel-buffering: no, chunked
++0.001s  #1 notifications/message   "starting to count to 2"
++1.003s  #2 notifications/progress  1/2 "at 1"
++1.004s  #3 notifications/message   "reached 1"
++2.006s  #4 notifications/progress  2/2 "at 2"
++2.006s  #5 notifications/message   "reached 2"
++2.007s  #6 result id=3             content + structuredContent, resultType complete, _meta.serverInfo
++2.007s  end of chunked body; the response is over
 ```
 
-Every SSE event is `event: message`; no `id:` lines (no resumability in this family).
-The notifications are only sent because the request's `_meta` carried
-`io.modelcontextprotocol/logLevel`. First byte arrives immediately (the headers), then
-the stream lives exactly as long as the tool runs.
+Every SSE event is `event: message`; the type is the JSON-RPC `method`. No `id:` lines:
+this version has no stream resumability. The log messages are only sent because the
+request's `_meta` carried `io.modelcontextprotocol/logLevel`. All three requests rode
+one keep-alive connection, which the client then closed.
 
-**A3 `tools/list` with the `Mcp-Method` header omitted.** `400 Bad Request`, JSON-RPC
-error `-32020` "mcp-method header does not match the request body's method". The
-header-mirroring rule is enforced, not advisory.
+## Part 2: what the server rejects
 
-## Part B: 2025-06-18, handshake and sessions
-
-**B1 `initialize`.** Classic opening: `protocolVersion`, `capabilities`, `clientInfo` in
-`params`. The server minted a session and returned it in the `mcp-session-id` response
-header, and answered **over SSE** even though there was nothing to stream (one event,
-then close). The result lists the server's capabilities and echoes `2025-06-18`.
-
-**B2 `notifications/initialized`.** A notification, so `202 Accepted` with an empty
-body. The session header is echoed back.
-
-**B3 `tools/call slow_count(2)`.** Identical stream to A2, minus the 2026 fields:
-no `resultType`, no `_meta.serverInfo` on the result. Progress and log notifications
-look exactly the same in both families.
-
-**B4 `tools/list` without the session header.** `400`, `-32600` "Missing session ID".
-Note the server log: it created a transport for the request and immediately terminated
-it. Sessions cost something even when rejected.
-
-**B5 `GET` and B6 `DELETE`.** The GET opened the 2025 standalone stream: `200`,
-`text/event-stream`, and then silence until curl's 5-second timeout, because nothing
-server-initiated happened. The DELETE ended the session with a `200`; the log shows
-"Terminating session".
-
-## What the server log added
-
-Every `ctx.info(...)` call printed `MCPDeprecationWarning: The logging capability is
-deprecated as of 2026-07-28 (SEP-2577)`. The SDK still sends the messages, but it is
-telling you that per-request `notifications/message` is on its way out in favour of
-stderr (stdio) or OpenTelemetry.
-
-## Side by side
-
-| | 2026-07-28 (A) | 2025-06-18 (B) |
+| Step | Request | Response |
 |---|---|---|
-| Opening | none; `_meta` on every request | `initialize` + `notifications/initialized` |
-| Identity | `Mcp-Method`, `Mcp-Name` headers (enforced, A3) | `Mcp-Session-Id` header (enforced, B4) |
-| `tools/list` response | plain JSON | SSE even for one event |
-| Result fields | `resultType`, `cacheScope`, `_meta.serverInfo` | none of those |
-| Progress / log on the call stream | identical | identical |
-| Standalone server→client stream | gone (would be `subscriptions/listen`) | `GET` opens one |
-| Ending | nothing to end | `DELETE` |
+| 4a | `tools/list` without `Mcp-Method` | `400`, JSON-RPC error `-32020` HeaderMismatch |
+| 4b | `tools/list` claiming version `2027-01-01` | `400`, `-32022` UnsupportedProtocolVersion, `data.supported: ["2026-07-28"]` |
+| 4c | `GET` on the endpoint | `405 Method Not Allowed`: the 2025 standalone stream no longer exists |
+
+4b is the whole of version negotiation in this protocol: ask for what you want, get told
+what exists, try again.
+
+## Step 5: `subscriptions/listen`, the only long-lived stream
+
+The modern replacement for the 2025 GET stream, and the only way the server can send
+something the client did not just ask for. It is an ordinary POST whose response stream
+stays open.
+
+```
+conn #5  → POST subscriptions/listen  {notifications: {toolsListChanged: true}}
+         ← +0.002s  200, text/event-stream
+         ← +0.002s  notifications/subscriptions/acknowledged
+                    params.notifications {toolsListChanged: true}
+                    params._meta.subscriptionId = 5   (the JSON-RPC id of the listen request)
+         ← +2.002s  (quiet; nothing has happened)
+conn #6  → POST tools/call announce_change            ← 200, plain JSON result
+         (the tool calls notify_tools_changed() on the server)
+conn #5  ← +2.006s  notifications/tools/list_changed, tagged with subscriptionId 5
+         ← +4.007s  (quiet again)
+client closes conn #5: that is how you unsubscribe
+```
+
+Things to notice: the client opted in to one notification type and the acknowledgement
+echoes exactly what the server agreed to send; the notification arrived on the listen
+stream, not on conn #6's response, because it is unrelated to that request; and the
+request-scoped messages from step 3 (progress, log) would never appear here. Closing the
+stream is the unsubscribe; there is no message for it.
+
+## Summary of the wire
+
+Six TCP connections, every one opened by the client. Eight HTTP requests. Two SSE
+streams: the slow tool call (notifications before its result) and the listen channel.
+Everything else was a single JSON object. The server never initiated a connection,
+never sent a request to the client, and kept no state between requests.
+
+## Appendix: the 2025-06-18 handshake family
+
+`trace_session.py --legacy` appends steps L1–L6 against the same server, which answers
+both families without configuration. The differences you will see: an `initialize`
+request first, whose response mints an `Mcp-Session-Id` header that must be echoed on
+everything after (omit it: `400 -32600 Missing session ID`); `notifications/initialized`
+answered with `202`; the same progress and log stream on the tool call but no
+`resultType` or `_meta.serverInfo` on the result; a `GET` that opens a standalone
+stream and sits silent; and `DELETE` to end the session. Useful for recognising an
+older server in the wild, not for learning the protocol.
 
 ## Against the other captures
 
-Next to the OpenAI Responses stream: same `text/event-stream`, same blank-line framing,
-but here `event:` is always `message` and the type lives in the JSON-RPC `method`.
-Next to `sse_server.py`: same shape as your own server, with `x-accel-buffering: no`
-added for proxies and no `id:` because this family does not resume.
+Next to the OpenAI Responses stream in `00-protocols`: same `text/event-stream`, same
+blank-line framing, but here `event:` is always `message` and the type lives in the
+JSON-RPC `method`. Next to `sse_server.py`: same shape as your own server, with
+`x-accel-buffering: no` added for proxies and no `id:` because this version does not
+resume.

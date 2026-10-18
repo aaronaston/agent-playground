@@ -95,7 +95,7 @@ Done when: I can explain each event in a captured stream and why SSE (not WebSoc
 - [ ] Can explain why SSE is used here instead of WebSockets
 
 ### B2. MCP: the protocol and its features
-MCP is JSON-RPC 2.0 in both directions over a transport. Learn it against the **current revision (2026-07-28)** but keep the 2025 family in view, because most deployed servers still speak it. Specs: https://modelcontextprotocol.io/specification/2026-07-28 and the changelog for each revision.
+MCP is JSON-RPC 2.0 over a transport. Learn it against the **current revision (2026-07-28) first and only**; the 2025 family matters later, for recognising older servers, and is kept behind a `--legacy` flag in the experiments. Specs: https://modelcontextprotocol.io/specification/2026-07-28 and the changelog for each revision.
 
 #### B2.1 Versions and the two families
 - Five revisions, all still valid: 2024-11-05, 2025-03-26, 2025-06-18, 2025-11-25, 2026-07-28. Date-named; no central decommissioning.

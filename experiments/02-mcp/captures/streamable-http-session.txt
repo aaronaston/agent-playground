@@ -1,16 +1,89 @@
-MCP Streamable HTTP trace  ·  2026-10-18 11:20:04  ·  server 127.0.0.1:8000/mcp
+MCP Streamable HTTP trace  ·  protocol 2026-07-28  ·  2026-10-18 11:27:09  ·  server 127.0.0.1:8000/mcp
 Legend: → sent by client (this script)   ← sent by server, stamped with seconds since the request was sent
+There is no handshake in this protocol version. Every request carries the protocol version, client identity and
+capabilities in params._meta, and mirrors its method into the Mcp-Method header for proxies.
 
 ──────────────────────────────────────────────────────────────────────────────────────────
-PART A  ·  speaking 2026-07-28: no handshake, version + capabilities in _meta on every request
-  All of Part A rides on ONE keep-alive HTTP/1.1 connection, to show that requests, not connections, are the unit.
+PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connection
+  To show that the unit of the protocol is the request, not the connection.
 ──────────────────────────────────────────────────────────────────────────────────────────
   [conn #1] opened new TCP connection to 127.0.0.1:8000
 
 ──────────────────────────────────────────────────────────────────────────────────────────
-A1  ·  MCP tools/list  (expect: plain JSON, nothing to stream)
+1  ·  MCP server/discover  (optional first call: which versions and capabilities does this server have?)
 ──────────────────────────────────────────────────────────────────────────────────────────
   [conn #1] request #1 on this connection
+
+  client → server  (HTTP request)
+  → POST /mcp HTTP/1.1
+  → Host: 127.0.0.1:8000
+  → Content-Type: application/json
+  → Accept: application/json, text/event-stream
+  → MCP-Protocol-Version: 2026-07-28
+  → Mcp-Method: server/discover
+  → Content-Length: 309
+  →
+  → body: JSON-RPC request id=1 method=server/discover
+  → {
+  →  "jsonrpc": "2.0",
+  →  "id": 1,
+  →  "method": "server/discover",
+  →  "params": {
+  →   "_meta": {
+  →    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+  →    "io.modelcontextprotocol/clientInfo": {
+  →     "name": "trace-study",
+  →     "version": "0"
+  →    },
+  →    "io.modelcontextprotocol/clientCapabilities": {},
+  →    "io.modelcontextprotocol/logLevel": "info"
+  →   }
+  →  }
+  → }
+
+  server → client  (HTTP response)
+  ← +0.001s HTTP/1.1 200 OK
+  ←         date: Sun, 18 Oct 2026 15:27:09 GMT
+  ←         server: uvicorn
+  ←         content-length: 343
+  ←         content-type: application/json
+  ←
+  ← body (343 bytes, application/json): JSON-RPC result for id=1
+  ← {
+  ←  "jsonrpc": "2.0",
+  ←  "id": 1,
+  ←  "result": {
+  ←   "cacheScope": "private",
+  ←   "capabilities": {
+  ←    "prompts": {
+  ←     "listChanged": true
+  ←    },
+  ←    "resources": {
+  ←     "listChanged": true,
+  ←     "subscribe": true
+  ←    },
+  ←    "tools": {
+  ←     "listChanged": true
+  ←    }
+  ←   },
+  ←   "resultType": "complete",
+  ←   "supportedVersions": [
+  ←    "2026-07-28"
+  ←   ],
+  ←   "ttlMs": 0,
+  ←   "_meta": {
+  ←    "io.modelcontextprotocol/serverInfo": {
+  ←     "name": "study-server",
+  ←     "version": "0.1.0"
+  ←    }
+  ←   }
+  ←  }
+  ← }
+
+──────────────────────────────────────────────────────────────────────────────────────────
+2  ·  MCP tools/list  (expect: plain JSON, nothing to stream)
+──────────────────────────────────────────────────────────────────────────────────────────
+  [conn #1] request #2 on this connection
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
@@ -21,10 +94,10 @@ A1  ·  MCP tools/list  (expect: plain JSON, nothing to stream)
   → Mcp-Method: tools/list
   → Content-Length: 304
   →
-  → body: JSON-RPC request id=1 method=tools/list
+  → body: JSON-RPC request id=2 method=tools/list
   → {
   →  "jsonrpc": "2.0",
-  →  "id": 1,
+  →  "id": 2,
   →  "method": "tools/list",
   →  "params": {
   →   "_meta": {
@@ -41,15 +114,15 @@ A1  ·  MCP tools/list  (expect: plain JSON, nothing to stream)
 
   server → client  (HTTP response)
   ← +0.001s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:20:04 GMT
+  ←         date: Sun, 18 Oct 2026 15:27:09 GMT
   ←         server: uvicorn
-  ←         content-length: 575
+  ←         content-length: 931
   ←         content-type: application/json
   ←
-  ← body (575 bytes, application/json): JSON-RPC result for id=1
+  ← body (931 bytes, application/json): JSON-RPC result for id=2
   ← {
   ←  "jsonrpc": "2.0",
-  ←  "id": 1,
+  ←  "id": 2,
   ←  "result": {
   ←   "cacheScope": "private",
   ←   "resultType": "complete",
@@ -83,6 +156,28 @@ A1  ·  MCP tools/list  (expect: plain JSON, nothing to stream)
   ←      "title": "slow_countOutput",
   ←      "type": "object"
   ←     }
+  ←    },
+  ←    {
+  ←     "description": "Pretend the tool set changed: pushes notifications/tools/list_changed to listeners.",
+  ←     "inputSchema": {
+  ←      "type": "object",
+  ←      "properties": {},
+  ←      "title": "announce_changeArguments"
+  ←     },
+  ←     "name": "announce_change",
+  ←     "outputSchema": {
+  ←      "properties": {
+  ←       "result": {
+  ←        "title": "Result",
+  ←        "type": "string"
+  ←       }
+  ←      },
+  ←      "required": [
+  ←       "result"
+  ←      ],
+  ←      "title": "announce_changeOutput",
+  ←      "type": "object"
+  ←     }
   ←    }
   ←   ],
   ←   "ttlMs": 0,
@@ -96,9 +191,9 @@ A1  ·  MCP tools/list  (expect: plain JSON, nothing to stream)
   ← }
 
 ──────────────────────────────────────────────────────────────────────────────────────────
-A2  ·  MCP tools/call slow_count(n=2)  (expect: SSE stream with log + progress, then the result)
+3  ·  MCP tools/call slow_count(n=2)  (expect: SSE stream with log + progress, then the result)
 ──────────────────────────────────────────────────────────────────────────────────────────
-  [conn #1] request #2 on this connection
+  [conn #1] request #3 on this connection
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
@@ -110,10 +205,10 @@ A2  ·  MCP tools/call slow_count(n=2)  (expect: SSE stream with log + progress,
   → Mcp-Name: slow_count
   → Content-Length: 372
   →
-  → body: JSON-RPC request id=2 method=tools/call
+  → body: JSON-RPC request id=3 method=tools/call
   → {
   →  "jsonrpc": "2.0",
-  →  "id": 2,
+  →  "id": 3,
   →  "method": "tools/call",
   →  "params": {
   →   "name": "slow_count",
@@ -135,7 +230,7 @@ A2  ·  MCP tools/call slow_count(n=2)  (expect: SSE stream with log + progress,
 
   server → client  (HTTP response)
   ← +0.001s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:20:04 GMT
+  ←         date: Sun, 18 Oct 2026 15:27:09 GMT
   ←         server: uvicorn
   ←         content-type: text/event-stream
   ←         cache-control: no-cache, no-transform
@@ -166,7 +261,7 @@ A2  ·  MCP tools/call slow_count(n=2)  (expect: SSE stream with log + progress,
   ←              "message": "at 1"
   ←             }
   ←            }
-  ← +1.003s  SSE event #3: event: message
+  ← +1.004s  SSE event #3: event: message
   ←          data: JSON-RPC notification method=notifications/message
   ←            {
   ←             "jsonrpc": "2.0",
@@ -176,7 +271,7 @@ A2  ·  MCP tools/call slow_count(n=2)  (expect: SSE stream with log + progress,
   ←              "data": "reached 1"
   ←             }
   ←            }
-  ← +2.005s  SSE event #4: event: message
+  ← +2.006s  SSE event #4: event: message
   ←          data: JSON-RPC notification method=notifications/progress
   ←            {
   ←             "jsonrpc": "2.0",
@@ -188,7 +283,7 @@ A2  ·  MCP tools/call slow_count(n=2)  (expect: SSE stream with log + progress,
   ←              "message": "at 2"
   ←             }
   ←            }
-  ← +2.005s  SSE event #5: event: message
+  ← +2.006s  SSE event #5: event: message
   ←          data: JSON-RPC notification method=notifications/message
   ←            {
   ←             "jsonrpc": "2.0",
@@ -198,11 +293,11 @@ A2  ·  MCP tools/call slow_count(n=2)  (expect: SSE stream with log + progress,
   ←              "data": "reached 2"
   ←             }
   ←            }
-  ← +2.005s  SSE event #6: event: message
-  ←          data: JSON-RPC result for id=2
+  ← +2.007s  SSE event #6: event: message
+  ←          data: JSON-RPC result for id=3
   ←            {
   ←             "jsonrpc": "2.0",
-  ←             "id": 2,
+  ←             "id": 3,
   ←             "result": {
   ←              "content": [
   ←               {
@@ -223,12 +318,18 @@ A2  ·  MCP tools/call slow_count(n=2)  (expect: SSE stream with log + progress,
   ←              }
   ←             }
   ←            }
-  ← +2.006s  [end of chunked body: server finished the response]
+  ← +2.007s  [end of chunked body: server finished the response]
+  [conn #1] closed by client after 3 request(s); Part 1 done
 
 ──────────────────────────────────────────────────────────────────────────────────────────
-A3  ·  MCP tools/list again, but WITHOUT the Mcp-Method header  (expect: rejected)
+PART 2  ·  what the server rejects, one fresh connection each
 ──────────────────────────────────────────────────────────────────────────────────────────
-  [conn #1] request #3 on this connection
+  [conn #2] opened new TCP connection to 127.0.0.1:8000
+
+──────────────────────────────────────────────────────────────────────────────────────────
+4a  ·  tools/list WITHOUT the Mcp-Method header  (expect: 400, HeaderMismatch)
+──────────────────────────────────────────────────────────────────────────────────────────
+  [conn #2] request #1 on this connection
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
@@ -238,10 +339,10 @@ A3  ·  MCP tools/list again, but WITHOUT the Mcp-Method header  (expect: reject
   → MCP-Protocol-Version: 2026-07-28
   → Content-Length: 304
   →
-  → body: JSON-RPC request id=3 method=tools/list
+  → body: JSON-RPC request id=4 method=tools/list
   → {
   →  "jsonrpc": "2.0",
-  →  "id": 3,
+  →  "id": 4,
   →  "method": "tools/list",
   →  "params": {
   →   "_meta": {
@@ -258,100 +359,25 @@ A3  ·  MCP tools/list again, but WITHOUT the Mcp-Method header  (expect: reject
 
   server → client  (HTTP response)
   ← +0.001s HTTP/1.1 400 Bad Request
-  ←         date: Sun, 18 Oct 2026 15:20:06 GMT
+  ←         date: Sun, 18 Oct 2026 15:27:11 GMT
   ←         server: uvicorn
   ←         content-length: 119
   ←         content-type: application/json
   ←
-  ← body (119 bytes, application/json): JSON-RPC error for id=3: -32020 mcp-method header does not match the request body's method
+  ← body (119 bytes, application/json): JSON-RPC error for id=4: -32020 mcp-method header does not match the request body's method
   ← {
   ←  "jsonrpc": "2.0",
-  ←  "id": 3,
+  ←  "id": 4,
   ←  "error": {
   ←   "code": -32020,
   ←   "message": "mcp-method header does not match the request body's method"
   ←  }
   ← }
-  [conn #1] closed by client after 3 request(s); Part A done
-
-──────────────────────────────────────────────────────────────────────────────────────────
-PART B  ·  speaking 2025-06-18: initialize first, then a session id header on everything
-  Part B uses a fresh connection per request, the way most clients behave, to show the session id doing the correlating.
-──────────────────────────────────────────────────────────────────────────────────────────
-  [conn #2] opened new TCP connection to 127.0.0.1:8000
-
-──────────────────────────────────────────────────────────────────────────────────────────
-B1  ·  MCP initialize  (expect: capabilities back, and a session id in a response header)
-──────────────────────────────────────────────────────────────────────────────────────────
-  [conn #2] request #1 on this connection
-
-  client → server  (HTTP request)
-  → POST /mcp HTTP/1.1
-  → Host: 127.0.0.1:8000
-  → Content-Type: application/json
-  → Accept: application/json, text/event-stream
-  → Content-Length: 171
-  →
-  → body: JSON-RPC request id=1 method=initialize
-  → {
-  →  "jsonrpc": "2.0",
-  →  "id": 1,
-  →  "method": "initialize",
-  →  "params": {
-  →   "protocolVersion": "2025-06-18",
-  →   "capabilities": {},
-  →   "clientInfo": {
-  →    "name": "trace-study",
-  →    "version": "0"
-  →   }
-  →  }
-  → }
-
-  server → client  (HTTP response)
-  ← +0.002s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:20:06 GMT
-  ←         server: uvicorn
-  ←         cache-control: no-cache, no-transform
-  ←         connection: keep-alive
-  ←         content-type: text/event-stream
-  ←         mcp-session-id: 608306f6522d4940bc20ace05fc5142e
-  ←         x-accel-buffering: no
-  ←         Transfer-Encoding: chunked
-  ←
-  ← body: chunked text/event-stream; printing each chunk as it arrives
-  ← +0.004s  SSE event #1: event: message
-  ←          data: JSON-RPC result for id=1
-  ←            {
-  ←             "jsonrpc": "2.0",
-  ←             "id": 1,
-  ←             "result": {
-  ←              "capabilities": {
-  ←               "prompts": {
-  ←                "listChanged": false
-  ←               },
-  ←               "resources": {
-  ←                "listChanged": false,
-  ←                "subscribe": false
-  ←               },
-  ←               "tools": {
-  ←                "listChanged": false
-  ←               }
-  ←              },
-  ←              "protocolVersion": "2025-06-18",
-  ←              "serverInfo": {
-  ←               "name": "study-server",
-  ←               "version": "0.1.0"
-  ←              }
-  ←             }
-  ←            }
-  ← +0.004s  [end of chunked body: server finished the response]
-
-  >>> server minted session id '608306f6522d4940bc20ace05fc5142e'; the client must now send it on every request
   [conn #2] closed by client after 1 request(s)
   [conn #3] opened new TCP connection to 127.0.0.1:8000
 
 ──────────────────────────────────────────────────────────────────────────────────────────
-B2  ·  MCP notifications/initialized  (a notification: expect 202 and no body)
+4b  ·  tools/list claiming protocol version 2027-01-01  (expect: 400, UnsupportedProtocolVersion with the supported list)
 ──────────────────────────────────────────────────────────────────────────────────────────
   [conn #3] request #1 on this connection
 
@@ -360,149 +386,80 @@ B2  ·  MCP notifications/initialized  (a notification: expect 202 and no body)
   → Host: 127.0.0.1:8000
   → Content-Type: application/json
   → Accept: application/json, text/event-stream
-  → MCP-Protocol-Version: 2025-06-18
-  → Mcp-Session-Id: 608306f6522d4940bc20ace05fc5142e
-  → Content-Length: 57
+  → MCP-Protocol-Version: 2027-01-01
+  → Mcp-Method: tools/list
+  → Content-Length: 304
   →
-  → body: JSON-RPC notification method=notifications/initialized
+  → body: JSON-RPC request id=4 method=tools/list
   → {
   →  "jsonrpc": "2.0",
-  →  "method": "notifications/initialized"
-  → }
-
-  server → client  (HTTP response)
-  ← +0.002s HTTP/1.1 202 Accepted
-  ←         date: Sun, 18 Oct 2026 15:20:06 GMT
-  ←         server: uvicorn
-  ←         content-type: application/json
-  ←         mcp-session-id: 608306f6522d4940bc20ace05fc5142e
-  ←         content-length: 0
-  ←
-  ← (empty body)
-  [conn #3] closed by client after 1 request(s)
-  [conn #4] opened new TCP connection to 127.0.0.1:8000
-
-──────────────────────────────────────────────────────────────────────────────────────────
-B3  ·  MCP tools/call slow_count(n=2) with the session id  (expect: same stream as A2)
-──────────────────────────────────────────────────────────────────────────────────────────
-  [conn #4] request #1 on this connection
-
-  client → server  (HTTP request)
-  → POST /mcp HTTP/1.1
-  → Host: 127.0.0.1:8000
-  → Content-Type: application/json
-  → Accept: application/json, text/event-stream
-  → MCP-Protocol-Version: 2025-06-18
-  → Mcp-Session-Id: 608306f6522d4940bc20ace05fc5142e
-  → Content-Length: 142
-  →
-  → body: JSON-RPC request id=2 method=tools/call
-  → {
-  →  "jsonrpc": "2.0",
-  →  "id": 2,
-  →  "method": "tools/call",
+  →  "id": 4,
+  →  "method": "tools/list",
   →  "params": {
-  →   "name": "slow_count",
-  →   "arguments": {
-  →    "n": 2
-  →   },
   →   "_meta": {
-  →    "progressToken": "p1"
+  →    "io.modelcontextprotocol/protocolVersion": "2027-01-01",
+  →    "io.modelcontextprotocol/clientInfo": {
+  →     "name": "trace-study",
+  →     "version": "0"
+  →    },
+  →    "io.modelcontextprotocol/clientCapabilities": {},
+  →    "io.modelcontextprotocol/logLevel": "info"
   →   }
   →  }
   → }
 
   server → client  (HTTP response)
-  ← +0.002s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:20:06 GMT
+  ← +0.001s HTTP/1.1 400 Bad Request
+  ←         date: Sun, 18 Oct 2026 15:27:11 GMT
   ←         server: uvicorn
-  ←         cache-control: no-cache, no-transform
-  ←         connection: keep-alive
-  ←         content-type: text/event-stream
-  ←         mcp-session-id: 608306f6522d4940bc20ace05fc5142e
-  ←         x-accel-buffering: no
-  ←         Transfer-Encoding: chunked
+  ←         content-length: 150
+  ←         content-type: application/json
   ←
-  ← body: chunked text/event-stream; printing each chunk as it arrives
-  ← +0.004s  SSE event #1: event: message
-  ←          data: JSON-RPC notification method=notifications/message
-  ←            {
-  ←             "jsonrpc": "2.0",
-  ←             "method": "notifications/message",
-  ←             "params": {
-  ←              "level": "info",
-  ←              "data": "starting to count to 2"
-  ←             }
-  ←            }
-  ← +1.005s  SSE event #2: event: message
-  ←          data: JSON-RPC notification method=notifications/progress
-  ←            {
-  ←             "jsonrpc": "2.0",
-  ←             "method": "notifications/progress",
-  ←             "params": {
-  ←              "progressToken": "p1",
-  ←              "progress": 1,
-  ←              "total": 2,
-  ←              "message": "at 1"
-  ←             }
-  ←            }
-  ← +1.006s  SSE event #3: event: message
-  ←          data: JSON-RPC notification method=notifications/message
-  ←            {
-  ←             "jsonrpc": "2.0",
-  ←             "method": "notifications/message",
-  ←             "params": {
-  ←              "level": "info",
-  ←              "data": "reached 1"
-  ←             }
-  ←            }
-  ← +2.008s  SSE event #4: event: message
-  ←          data: JSON-RPC notification method=notifications/progress
-  ←            {
-  ←             "jsonrpc": "2.0",
-  ←             "method": "notifications/progress",
-  ←             "params": {
-  ←              "progressToken": "p1",
-  ←              "progress": 2,
-  ←              "total": 2,
-  ←              "message": "at 2"
-  ←             }
-  ←            }
-  ← +2.009s  SSE event #5: event: message
-  ←          data: JSON-RPC notification method=notifications/message
-  ←            {
-  ←             "jsonrpc": "2.0",
-  ←             "method": "notifications/message",
-  ←             "params": {
-  ←              "level": "info",
-  ←              "data": "reached 2"
-  ←             }
-  ←            }
-  ← +2.009s  SSE event #6: event: message
-  ←          data: JSON-RPC result for id=2
-  ←            {
-  ←             "jsonrpc": "2.0",
-  ←             "id": 2,
-  ←             "result": {
-  ←              "content": [
-  ←               {
-  ←                "text": "counted to 2",
-  ←                "type": "text"
-  ←               }
-  ←              ],
-  ←              "isError": false,
-  ←              "structuredContent": {
-  ←               "result": "counted to 2"
-  ←              }
-  ←             }
-  ←            }
-  ← +2.009s  [end of chunked body: server finished the response]
-  [conn #4] closed by client after 1 request(s)
-  [conn #5] opened new TCP connection to 127.0.0.1:8000
+  ← body (150 bytes, application/json): JSON-RPC error for id=4: -32022 Unsupported protocol version
+  ← {
+  ←  "jsonrpc": "2.0",
+  ←  "id": 4,
+  ←  "error": {
+  ←   "code": -32022,
+  ←   "message": "Unsupported protocol version",
+  ←   "data": {
+  ←    "supported": [
+  ←     "2026-07-28"
+  ←    ],
+  ←    "requested": "2027-01-01"
+  ←   }
+  ←  }
+  ← }
+  [conn #3] closed by client after 1 request(s)
+  [conn #4] opened new TCP connection to 127.0.0.1:8000
 
 ──────────────────────────────────────────────────────────────────────────────────────────
-B4  ·  MCP tools/list WITHOUT the session id  (expect: rejected)
+4c  ·  HTTP GET on the endpoint  (the 2025 standalone stream; expect: 405, it no longer exists)
 ──────────────────────────────────────────────────────────────────────────────────────────
+  [conn #4] request #1 on this connection
+
+  client → server  (HTTP request)
+  → GET /mcp HTTP/1.1
+  → Host: 127.0.0.1:8000
+  → Accept: text/event-stream
+  → MCP-Protocol-Version: 2026-07-28
+  →
+
+  server → client  (HTTP response)
+  ← +0.001s HTTP/1.1 405 Method Not Allowed
+  ←         date: Sun, 18 Oct 2026 15:27:11 GMT
+  ←         server: uvicorn
+  ←         allow: POST
+  ←         content-length: 0
+  ←
+  ← (empty body)
+  [conn #4] closed by client after 1 request(s)
+
+──────────────────────────────────────────────────────────────────────────────────────────
+5  ·  subscriptions/listen: the modern server→client channel
+  A POST whose response stream stays open. We open it on conn #L, then on another connection call a tool that changes the tool set, and watch the notification arrive on conn #L.
+──────────────────────────────────────────────────────────────────────────────────────────
+  [conn #5] opened new TCP connection to 127.0.0.1:8000
   [conn #5] request #1 on this connection
 
   client → server  (HTTP request)
@@ -510,92 +467,148 @@ B4  ·  MCP tools/list WITHOUT the session id  (expect: rejected)
   → Host: 127.0.0.1:8000
   → Content-Type: application/json
   → Accept: application/json, text/event-stream
-  → MCP-Protocol-Version: 2025-06-18
-  → Content-Length: 65
+  → MCP-Protocol-Version: 2026-07-28
+  → Mcp-Method: subscriptions/listen
+  → Content-Length: 359
   →
-  → body: JSON-RPC request id=3 method=tools/list
+  → body: JSON-RPC request id=5 method=subscriptions/listen
   → {
   →  "jsonrpc": "2.0",
-  →  "id": 3,
-  →  "method": "tools/list",
-  →  "params": {}
+  →  "id": 5,
+  →  "method": "subscriptions/listen",
+  →  "params": {
+  →   "notifications": {
+  →    "toolsListChanged": true
+  →   },
+  →   "_meta": {
+  →    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+  →    "io.modelcontextprotocol/clientInfo": {
+  →     "name": "trace-study",
+  →     "version": "0"
+  →    },
+  →    "io.modelcontextprotocol/clientCapabilities": {},
+  →    "io.modelcontextprotocol/logLevel": "info"
+  →   }
+  →  }
   → }
 
-  server → client  (HTTP response)
-  ← +0.002s HTTP/1.1 400 Bad Request
-  ←         date: Sun, 18 Oct 2026 15:20:08 GMT
+  server → client  (HTTP response; this stream will stay open)
+  ← +0.002s HTTP/1.1 200 OK
+  ←         date: Sun, 18 Oct 2026 15:27:11 GMT
   ←         server: uvicorn
-  ←         content-type: application/json
-  ←         mcp-session-id: 37377aeaf5cd4dd1a58ece533343547d
-  ←         content-length: 95
+  ←         content-type: text/event-stream
+  ←         cache-control: no-cache, no-transform
+  ←         connection: keep-alive
+  ←         x-accel-buffering: no
+  ←         Transfer-Encoding: chunked
   ←
-  ← body (95 bytes, application/json): JSON-RPC error for id=None: -32600 Bad Request: Missing session ID
-  ← {
-  ←  "jsonrpc": "2.0",
-  ←  "id": null,
-  ←  "error": {
-  ←   "code": -32600,
-  ←   "message": "Bad Request: Missing session ID"
-  ←  }
-  ← }
-  [conn #5] closed by client after 1 request(s)
+  ← +0.002s  [conn #5] SSE event: message
+  ←          data: JSON-RPC notification method=notifications/subscriptions/acknowledged
+  ←            {
+  ←             "jsonrpc": "2.0",
+  ←             "method": "notifications/subscriptions/acknowledged",
+  ←             "params": {
+  ←              "_meta": {
+  ←               "io.modelcontextprotocol/subscriptionId": 5
+  ←              },
+  ←              "notifications": {
+  ←               "toolsListChanged": true
+  ←              }
+  ←             }
+  ←            }
+  ← +2.002s  [conn #5] quiet: the acknowledgement came, nothing else has happened yet
+
+  >>> leaving conn #5 open; now trigger a change from a second connection
   [conn #6] opened new TCP connection to 127.0.0.1:8000
 
 ──────────────────────────────────────────────────────────────────────────────────────────
-B5  ·  HTTP GET: the 2025 standalone server→client stream  (expect: opens and stays silent)
+5b  ·  MCP tools/call announce_change  (the server will push tools/list_changed to listeners)
 ──────────────────────────────────────────────────────────────────────────────────────────
   [conn #6] request #1 on this connection
 
   client → server  (HTTP request)
-  → GET /mcp HTTP/1.1
+  → POST /mcp HTTP/1.1
   → Host: 127.0.0.1:8000
-  → Accept: text/event-stream
-  → MCP-Protocol-Version: 2025-06-18
-  → Mcp-Session-Id: 608306f6522d4940bc20ace05fc5142e
+  → Content-Type: application/json
+  → Accept: application/json, text/event-stream
+  → MCP-Protocol-Version: 2026-07-28
+  → Mcp-Method: tools/call
+  → Mcp-Name: announce_change
+  → Content-Length: 348
   →
+  → body: JSON-RPC request id=6 method=tools/call
+  → {
+  →  "jsonrpc": "2.0",
+  →  "id": 6,
+  →  "method": "tools/call",
+  →  "params": {
+  →   "name": "announce_change",
+  →   "arguments": {},
+  →   "_meta": {
+  →    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+  →    "io.modelcontextprotocol/clientInfo": {
+  →     "name": "trace-study",
+  →     "version": "0"
+  →    },
+  →    "io.modelcontextprotocol/clientCapabilities": {},
+  →    "io.modelcontextprotocol/logLevel": "info"
+  →   }
+  →  }
+  → }
 
   server → client  (HTTP response)
   ← +0.002s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:20:08 GMT
+  ←         date: Sun, 18 Oct 2026 15:27:13 GMT
   ←         server: uvicorn
-  ←         cache-control: no-cache, no-transform
-  ←         connection: keep-alive
-  ←         content-type: text/event-stream
-  ←         mcp-session-id: 608306f6522d4940bc20ace05fc5142e
-  ←         x-accel-buffering: no
-  ←         Transfer-Encoding: chunked
-  ←
-  ← body: chunked text/event-stream; printing each chunk as it arrives
-  ← +3.003s  [no more data for 3s]  nothing server-initiated happened, so nothing was sent; a real client would leave this open
-  [conn #6] closed by client after 1 request(s); giving up on the idle stream
-  [conn #7] opened new TCP connection to 127.0.0.1:8000
-
-──────────────────────────────────────────────────────────────────────────────────────────
-B6  ·  HTTP DELETE: end the session
-──────────────────────────────────────────────────────────────────────────────────────────
-  [conn #7] request #1 on this connection
-
-  client → server  (HTTP request)
-  → DELETE /mcp HTTP/1.1
-  → Host: 127.0.0.1:8000
-  → MCP-Protocol-Version: 2025-06-18
-  → Mcp-Session-Id: 608306f6522d4940bc20ace05fc5142e
-  →
-
-  server → client  (HTTP response)
-  ← +0.003s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:20:11 GMT
-  ←         server: uvicorn
+  ←         content-length: 272
   ←         content-type: application/json
-  ←         mcp-session-id: 608306f6522d4940bc20ace05fc5142e
-  ←         content-length: 0
   ←
-  ← (empty body)
-  [conn #7] closed by client after 1 request(s)
+  ← body (272 bytes, application/json): JSON-RPC result for id=6
+  ← {
+  ←  "jsonrpc": "2.0",
+  ←  "id": 6,
+  ←  "result": {
+  ←   "content": [
+  ←    {
+  ←     "text": "notified listeners",
+  ←     "type": "text"
+  ←    }
+  ←   ],
+  ←   "isError": false,
+  ←   "resultType": "complete",
+  ←   "structuredContent": {
+  ←    "result": "notified listeners"
+  ←   },
+  ←   "_meta": {
+  ←    "io.modelcontextprotocol/serverInfo": {
+  ←     "name": "study-server",
+  ←     "version": "0.1.0"
+  ←    }
+  ←   }
+  ←  }
+  ← }
+  [conn #6] closed by client after 1 request(s)
+
+  >>> back to conn #5: did anything arrive on the listen stream?
+  ← +2.006s  [conn #5] SSE event: message
+  ←          data: JSON-RPC notification method=notifications/tools/list_changed
+  ←            {
+  ←             "jsonrpc": "2.0",
+  ←             "method": "notifications/tools/list_changed",
+  ←             "params": {
+  ←              "_meta": {
+  ←               "io.modelcontextprotocol/subscriptionId": 5
+  ←              }
+  ←             }
+  ←            }
+  ← +4.007s  [conn #5] quiet again
+  [conn #5] closed by client after 1 request(s); done listening; closing the stream is how a client unsubscribes
 
 ──────────────────────────────────────────────────────────────────────────────────────────
 SUMMARY
 ──────────────────────────────────────────────────────────────────────────────────────────
-  TCP connections opened by the client: 7  (Part A: 1 connection, 3 requests; Part B: 6 connections, 1 request each)
-  Every MCP message the client sent was its own HTTP request. The server never sent anything the client did not ask for.
-  SSE appeared only on the slow tool call, where the server had notifications to deliver before the result.
+  TCP connections opened by the client: 6
+  Every MCP message the client sent was its own HTTP request. The server never sent anything the client did not ask for,
+  and the only long-lived stream was the one the client opened on purpose with subscriptions/listen.
+  SSE appeared on the slow tool call (notifications before the result) and on the listen stream; everything else was plain JSON.
+  Run with --legacy to append the 2025-06-18 handshake-and-session family for comparison.

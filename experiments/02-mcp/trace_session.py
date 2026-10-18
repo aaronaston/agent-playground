@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Drive server.py by hand and narrate every byte, with direction and connection.
+"""Drive server.py by hand, speaking MCP 2026-07-28, and narrate every byte.
 
 No HTTP library: this script opens TCP connections itself, writes the request bytes,
 and reads the response bytes, so it can say exactly when a connection opens, which
@@ -9,7 +9,8 @@ connection each request rides on, and when each byte arrived.
   ←  bytes the server sent, with the time since the request was written
 
 Start the server first:   uv run python server.py
-Then:                     uv run python trace_session.py
+Then:                     uv run python trace_session.py            # current protocol only
+                          uv run python trace_session.py --legacy   # plus the 2025 handshake family
 Output goes to the terminal and to captures/streamable-http-session.txt
 """
 import json
@@ -184,61 +185,140 @@ def rpc(id_, method, params):
     return json.dumps({"jsonrpc": "2.0", "id": id_, "method": method, "params": params})
 
 
-def main():
-    out(f"MCP Streamable HTTP trace  ·  {time.strftime('%Y-%m-%d %H:%M:%S')}  ·  server {HOST}:{PORT}{PATH}")
-    out("Legend: → sent by client (this script)   ← sent by server, stamped with seconds since the request was sent")
+def listen_then_trigger():
+    """subscriptions/listen on one connection, then make something happen on another."""
+    banner("5  ·  subscriptions/listen: the modern server→client channel",
+           "A POST whose response stream stays open. We open it on conn #L, then on another connection call a tool that "
+           "changes the tool set, and watch the notification arrive on conn #L.")
+    L = Conn()
+    body = rpc(5, "subscriptions/listen", {"notifications": {"toolsListChanged": True}, "_meta": META})
+    L.requests += 1
+    out(f"  [conn #{L.n}] request #1 on this connection")
+    out(); out("  client → server  (HTTP request)")
+    lines = [f"POST {PATH} HTTP/1.1", f"Host: {HOST}:{PORT}"] + ACCEPT + ["MCP-Protocol-Version: 2026-07-28",
+             "Mcp-Method: subscriptions/listen", f"Content-Length: {len(body)}"]
+    for l in lines:
+        out(f"  → {l}")
+    out("  →"); out(f"  → body: {describe(json.loads(body))}"); show_json("  → ", body)
+    t0 = time.monotonic()
+    L.sock.sendall(("\r\n".join(lines) + "\r\n\r\n").encode() + body.encode())
+    out(); out("  server → client  (HTTP response; this stream will stay open)")
+    head = L.read_until(b"\r\n\r\n", 10).decode()
+    for i, l in enumerate(head.split("\r\n")):
+        if l:
+            out(f"  ← {'+%.3fs ' % (time.monotonic() - t0) if i == 0 else '        '}{l}")
+    out("  ←")
 
-    banner("PART A  ·  speaking 2026-07-28: no handshake, version + capabilities in _meta on every request",
-           "All of Part A rides on ONE keep-alive HTTP/1.1 connection, to show that requests, not connections, are the unit.")
-    a = Conn()
-    request(a, "A1", "MCP tools/list  (expect: plain JSON, nothing to stream)",
-            "POST", ACCEPT + ["MCP-Protocol-Version: 2026-07-28", "Mcp-Method: tools/list"],
-            rpc(1, "tools/list", {"_meta": META}))
-    request(a, "A2", "MCP tools/call slow_count(n=2)  (expect: SSE stream with log + progress, then the result)",
-            "POST", ACCEPT + ["MCP-Protocol-Version: 2026-07-28", "Mcp-Method: tools/call", "Mcp-Name: slow_count"],
-            rpc(2, "tools/call", {"name": "slow_count", "arguments": {"n": 2}, "_meta": {**META, "progressToken": "p1"}}))
-    request(a, "A3", "MCP tools/list again, but WITHOUT the Mcp-Method header  (expect: rejected)",
-            "POST", ACCEPT + ["MCP-Protocol-Version: 2026-07-28"],
-            rpc(3, "tools/list", {"_meta": META}))
-    a.close("Part A done")
+    def read_events(conn, timeout, label):
+        try:
+            while True:
+                size = int(conn.read_until(b"\r\n", timeout).decode().split(";")[0], 16)
+                if size == 0:
+                    out(f"  ← [conn #{conn.n}] stream ended by server"); return
+                chunk = conn.read_n(size, timeout).decode(); conn.read_until(b"\r\n", timeout)
+                stamp = f"+{time.monotonic() - t0:.3f}s"
+                for l in chunk.split("\n"):
+                    if l.startswith("event:"):
+                        out(f"  ← {stamp}  [conn #{conn.n}] SSE {l}")
+                    elif l.startswith("data:"):
+                        out(f"  ←          data: {describe(json.loads(l[5:]))}"); show_json("  ←            ", l[5:].strip())
+        except socket.timeout:
+            out(f"  ← +{time.monotonic() - t0:.3f}s  [conn #{conn.n}] {label}")
 
-    banner("PART B  ·  speaking 2025-06-18: initialize first, then a session id header on everything",
-           "Part B uses a fresh connection per request, the way most clients behave, to show the session id doing the correlating.")
+    read_events(L, 2, "quiet: the acknowledgement came, nothing else has happened yet")
+    out(); out(f"  >>> leaving conn #{L.n} open; now trigger a change from a second connection")
+    T = Conn()
+    request(T, "5b", "MCP tools/call announce_change  (the server will push tools/list_changed to listeners)",
+            "POST", ACCEPT + ["MCP-Protocol-Version: 2026-07-28", "Mcp-Method: tools/call", "Mcp-Name: announce_change"],
+            rpc(6, "tools/call", {"name": "announce_change", "arguments": {}, "_meta": META}))
+    T.close()
+    out(); out(f"  >>> back to conn #{L.n}: did anything arrive on the listen stream?")
+    read_events(L, 2, "quiet again")
+    L.close("done listening; closing the stream is how a client unsubscribes")
+
+
+def legacy():
+    banner("APPENDIX  ·  the 2025-06-18 handshake family, for comparison only",
+           "initialize first, then a session id header on everything. Fresh connection per request.")
     b1 = Conn()
-    h = request(b1, "B1", "MCP initialize  (expect: capabilities back, and a session id in a response header)",
+    h = request(b1, "L1", "MCP initialize  (expect: capabilities back, and a session id in a response header)",
                 "POST", ACCEPT, rpc(1, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
                                                       "clientInfo": {"name": "trace-study", "version": "0"}}))
     sid = h.get("mcp-session-id", "")
     out(f"\n  >>> server minted session id {sid!r}; the client must now send it on every request")
     b1.close()
     b2 = Conn()
-    request(b2, "B2", "MCP notifications/initialized  (a notification: expect 202 and no body)",
+    request(b2, "L2", "MCP notifications/initialized  (a notification: expect 202 and no body)",
             "POST", ACCEPT + ["MCP-Protocol-Version: 2025-06-18", f"Mcp-Session-Id: {sid}"],
             json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}))
     b2.close()
     b3 = Conn()
-    request(b3, "B3", "MCP tools/call slow_count(n=2) with the session id  (expect: same stream as A2)",
+    request(b3, "L3", "MCP tools/call slow_count(n=2) with the session id",
             "POST", ACCEPT + ["MCP-Protocol-Version: 2025-06-18", f"Mcp-Session-Id: {sid}"],
             rpc(2, "tools/call", {"name": "slow_count", "arguments": {"n": 2}, "_meta": {"progressToken": "p1"}}))
     b3.close()
     b4 = Conn()
-    request(b4, "B4", "MCP tools/list WITHOUT the session id  (expect: rejected)",
+    request(b4, "L4", "MCP tools/list WITHOUT the session id  (expect: rejected)",
             "POST", ACCEPT + ["MCP-Protocol-Version: 2025-06-18"], rpc(3, "tools/list", {}))
     b4.close()
     b5 = Conn()
-    request(b5, "B5", "HTTP GET: the 2025 standalone server→client stream  (expect: opens and stays silent)",
+    request(b5, "L5", "HTTP GET: the 2025 standalone server→client stream  (expect: opens and stays silent)",
             "GET", ["Accept: text/event-stream", "MCP-Protocol-Version: 2025-06-18", f"Mcp-Session-Id: {sid}"],
-            read_timeout=3, idle_note="nothing server-initiated happened, so nothing was sent; a real client would leave this open")
+            read_timeout=3, idle_note="nothing server-initiated happened; a real client would leave this open")
     b5.close("giving up on the idle stream")
     b6 = Conn()
-    request(b6, "B6", "HTTP DELETE: end the session",
-            "DELETE", ["MCP-Protocol-Version: 2025-06-18", f"Mcp-Session-Id: {sid}"])
+    request(b6, "L6", "HTTP DELETE: end the session", "DELETE", ["MCP-Protocol-Version: 2025-06-18", f"Mcp-Session-Id: {sid}"])
     b6.close()
 
+
+def main():
+    want_legacy = "--legacy" in sys.argv
+    out(f"MCP Streamable HTTP trace  ·  protocol 2026-07-28  ·  {time.strftime('%Y-%m-%d %H:%M:%S')}  ·  server {HOST}:{PORT}{PATH}")
+    out("Legend: → sent by client (this script)   ← sent by server, stamped with seconds since the request was sent")
+    out("There is no handshake in this protocol version. Every request carries the protocol version, client identity and")
+    out("capabilities in params._meta, and mirrors its method into the Mcp-Method header for proxies.")
+
+    banner("PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connection",
+           "To show that the unit of the protocol is the request, not the connection.")
+    a = Conn()
+    request(a, "1", "MCP server/discover  (optional first call: which versions and capabilities does this server have?)",
+            "POST", ACCEPT + ["MCP-Protocol-Version: 2026-07-28", "Mcp-Method: server/discover"],
+            rpc(1, "server/discover", {"_meta": META}))
+    request(a, "2", "MCP tools/list  (expect: plain JSON, nothing to stream)",
+            "POST", ACCEPT + ["MCP-Protocol-Version: 2026-07-28", "Mcp-Method: tools/list"],
+            rpc(2, "tools/list", {"_meta": META}))
+    request(a, "3", "MCP tools/call slow_count(n=2)  (expect: SSE stream with log + progress, then the result)",
+            "POST", ACCEPT + ["MCP-Protocol-Version: 2026-07-28", "Mcp-Method: tools/call", "Mcp-Name: slow_count"],
+            rpc(3, "tools/call", {"name": "slow_count", "arguments": {"n": 2}, "_meta": {**META, "progressToken": "p1"}}))
+    a.close("Part 1 done")
+
+    banner("PART 2  ·  what the server rejects, one fresh connection each")
+    c = Conn()
+    request(c, "4a", "tools/list WITHOUT the Mcp-Method header  (expect: 400, HeaderMismatch)",
+            "POST", ACCEPT + ["MCP-Protocol-Version: 2026-07-28"], rpc(4, "tools/list", {"_meta": META}))
+    c.close()
+    c = Conn()
+    bad = {**META, "io.modelcontextprotocol/protocolVersion": "2027-01-01"}
+    request(c, "4b", "tools/list claiming protocol version 2027-01-01  (expect: 400, UnsupportedProtocolVersion with the supported list)",
+            "POST", ACCEPT + ["MCP-Protocol-Version: 2027-01-01", "Mcp-Method: tools/list"], rpc(4, "tools/list", {"_meta": bad}))
+    c.close()
+    c = Conn()
+    request(c, "4c", "HTTP GET on the endpoint  (the 2025 standalone stream; expect: 405, it no longer exists)",
+            "GET", ["Accept: text/event-stream", "MCP-Protocol-Version: 2026-07-28"])
+    c.close()
+
+    listen_then_trigger()
+
+    if want_legacy:
+        legacy()
+
     banner("SUMMARY")
-    out(f"  TCP connections opened by the client: {Conn.count}  (Part A: 1 connection, 3 requests; Part B: {Conn.count - 1} connections, 1 request each)")
-    out("  Every MCP message the client sent was its own HTTP request. The server never sent anything the client did not ask for.")
-    out("  SSE appeared only on the slow tool call, where the server had notifications to deliver before the result.")
+    out(f"  TCP connections opened by the client: {Conn.count}")
+    out("  Every MCP message the client sent was its own HTTP request. The server never sent anything the client did not ask for,")
+    out("  and the only long-lived stream was the one the client opened on purpose with subscriptions/listen.")
+    out("  SSE appeared on the slow tool call (notifications before the result) and on the listen stream; everything else was plain JSON.")
+    if not want_legacy:
+        out("  Run with --legacy to append the 2025-06-18 handshake-and-session family for comparison.")
     OUT.write_text("\n".join(LINES) + "\n")
     print(f"\nsaved {OUT}")
 

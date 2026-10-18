@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""The smallest useful MCP server: one tool that takes a while and talks while it works.
+"""The smallest useful MCP server: a tool that takes a while and talks while it works,
+and a tool that pushes a change notification to subscriptions/listen streams.
 
 Run over Streamable HTTP on http://127.0.0.1:8000/mcp :
     uv run python server.py
@@ -23,6 +24,13 @@ async def slow_count(n: int, ctx: Context) -> str:
         await ctx.report_progress(i, n, message=f"at {i}")
         await ctx.info(f"reached {i}")
     return f"counted to {n}"
+
+
+@mcp.tool()
+async def announce_change(ctx: Context) -> str:
+    """Pretend the tool set changed: pushes notifications/tools/list_changed to listeners."""
+    await ctx.notify_tools_changed()
+    return "notified listeners"
 
 
 if __name__ == "__main__":
