@@ -113,3 +113,7 @@ Format: **Q** · **A** (a few lines) · **Changed** (what moved in WALKTHROUGH.m
 **A:** Done with mcp SDK 2.3.0 (`MCPServer`; FastMCP is gone in 2.x). One server answered a 2026-07-28 client and a 2025-06-18 client without configuration. `tools/list` returned plain JSON; the slow tool call returned SSE with log and progress notifications once a second before the result; `event:` always `message`, no `id:` lines. Missing `Mcp-Method` → 400 `-32020`; missing `Mcp-Session-Id` (2025) → 400 `-32600`. The 2025 GET opened a silent standalone stream; DELETE ended the session. `ctx.info()` emits a deprecation warning citing SEP-2577.
 **Changed:** 1.6, B1 checkpoint and 2.4 marked done; 2.2 in progress; root README renumbered (02 is now MCP, Anthropic moves to 03); `experiments/02-mcp/` has a README, `server.py`, `capture_session.sh`.
 
+
+**Q: What is `uv`?**
+**A:** Astral's Rust-based Python package and project manager (2024), replacing pip, venv, pip-tools and pyenv in one fast binary. `pyproject.toml` declares wants; `uv.lock` pins the exact resolved set so `uv sync` reproduces the environment; `uv run` executes inside the project venv without activation. Node mapping: package.json / package-lock.json / npm install / npm ci. Already the repo's convention; installed via Homebrew.
+**Changed:** nothing.
