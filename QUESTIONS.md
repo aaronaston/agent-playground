@@ -74,3 +74,7 @@ Format: **Q** · **A** (a few lines) · **Changed** (what moved in WALKTHROUGH.m
 **Q: I don't understand the conclusion. Isn't Streamable HTTP on HTTP/2 the best experience?**
 **A:** Two axes were being conflated. HTTP/1.1 vs HTTP/2 decides connection cost (the multiplex demo); both transcripts run identically on either. 2025 server-initiated requests vs 2026 MRTR decides whether the server may ask mid-stream and keep working or must stop and be re-asked; both are Streamable HTTP. The conclusion compared the second axis only. HTTP/2 does not rescue the 2025 pattern's routing problem, because load balancers terminate HTTP/2 at the edge and route per request, so two streams on one client connection can reach different instances. Summary: HTTP/2 makes the conversation cheaper, MRTR makes the server simpler; you want both.
 **Changed:** nothing.
+
+**Q: What is MRTR?**
+**A:** Multi Round-Trip Requests, introduced in MCP 2026-07-28. One request may take several round trips: the server returns `resultType: "input_required"` with `inputRequests` and an opaque `requestState`; the client retries the same request with `inputResponses` and the echoed state; repeat until `resultType: "complete"`. Mandatory replacement for server-initiated `elicitation/create`, `sampling/createMessage`, and `roots/list`. Every exchange is self-contained; state travels through the client.
+**Changed:** nothing (already in the glossary and transcript A).
