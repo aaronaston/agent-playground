@@ -81,7 +81,7 @@ Hands-on:
 - [x] Compare one simple endpoint over HTTP/1.1 and HTTP/2.
 - [ ] Compare the same streaming use case over SSE and WebSockets.
 - [x] Capture an LLM API stream (OpenAI Responses, 2026-10-18; repeat with Anthropic Messages when a key exists).
-- [ ] Capture an MCP Streamable HTTP session.
+- [x] Capture an MCP Streamable HTTP session.
 
 Done when: I can explain each event in a captured stream and why SSE (not WebSockets) is used.
 
@@ -118,8 +118,8 @@ MCP is JSON-RPC 2.0 in both directions over a transport. Learn it against the **
 - 2026-07-28 shape: no sessions, no handshake, no GET stream, no resumability (re-issue the request); `subscriptions/listen` is a POST whose response stream stays open for opted-in change notifications; `Mcp-Method` / `Mcp-Name` request headers.
 - Why not WebSockets: plain HTTP keeps bearer-token headers, proxies, serverless and HTTP/2 multiplexing; a trivial server is just a JSON endpoint.
 - Origin validation (403), localhost binding, DNS rebinding.
-- [ ] Build a minimal server with the Python SDK over stdio, then over Streamable HTTP.
-- [ ] Drive the HTTP server with curl: a `tools/list`, a `tools/call`, and (2025 shape) an `initialize`; capture every header and body.
+- [~] Build a minimal server with the Python SDK over stdio, then over Streamable HTTP. (HTTP done; stdio pending)
+- [x] Drive the HTTP server with curl: a `tools/list`, a `tools/call`, and (2025 shape) an `initialize`; capture every header and body.
 - [ ] Capture the same session from an SDK client and compare with the curl version.
 
 #### B2.4 Server primitives
@@ -137,7 +137,7 @@ MCP is JSON-RPC 2.0 in both directions over a transport. Learn it against the **
 - **Roots**: client-exposed filesystem roots. Deprecated; pass paths as tool arguments instead.
 - **MRTR (Multi Round-Trip Requests)**: the 2026-07-28 replacement for all server-initiated requests. Server returns `resultType: "input_required"` with `inputRequests`; client retries the original request with `inputResponses`. `requestState` carries server correlation.
 - **Cancellation**: `notifications/cancelled`; a dropped HTTP connection is *not* a cancel.
-- [ ] Implement a long-running tool that emits progress and log messages; watch them arrive before the result.
+- [x] Implement a long-running tool that emits progress and log messages; watch them arrive before the result.
 - [ ] Implement an elicitation (form mode) and trace the round trip on the wire, once as a 2025-style server-initiated request and once as MRTR.
 - [ ] Try sampling against a 2025-era client to see what is being deprecated and why.
 
@@ -156,7 +156,7 @@ Done when: I can read a captured MCP session and name every message, say which r
 - [ ] Minimal server running over stdio and Streamable HTTP
 - [ ] Wire captures: curl and SDK, both families
 - [ ] Tools, resources, prompts, completion implemented and called
-- [ ] Progress and log messages observed mid-request
+- [x] Progress and log messages observed mid-request
 - [ ] Elicitation round trip traced (server-initiated and MRTR)
 - [ ] Sampling tried and its deprecation understood
 - [ ] Task extension tried

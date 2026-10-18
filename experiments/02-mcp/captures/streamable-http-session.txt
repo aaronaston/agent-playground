@@ -1,0 +1,185 @@
+
+==============================================================================
+# PART A: 2026-07-28 (modern, stateless). No initialize; version and capabilities in _meta on every request.
+==============================================================================
+
+==============================================================================
+# A1 tools/list
+==============================================================================
+# request body: {"jsonrpc":"2.0","id":1,"method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"curl-study","version":"0"},"io.modelcontextprotocol/clientCapabilities":{},"io.modelcontextprotocol/logLevel":"info"}}}
+
+HTTP/1.1 200 OK
+date: Sun, 18 Oct 2026 14:25:44 GMT
+server: uvicorn
+content-length: 575
+content-type: application/json
+
+{"jsonrpc":"2.0","id":1,"result":{"cacheScope":"private","resultType":"complete","tools":[{"description":"Count to n, one second per step, reporting progress and logging as it goes.","inputSchema":{"type":"object","properties":{"n":{"title":"N","type":"integer"}},"required":["n"],"title":"slow_countArguments"},"name":"slow_count","outputSchema":{"properties":{"result":{"title":"Result","type":"string"}},"required":["result"],"title":"slow_countOutput","type":"object"}}],"ttlMs":0,"_meta":{"io.modelcontextprotocol/serverInfo":{"name":"study-server","version":"0.1.0"}}}}
+# curl: http 1.1, status 200, first byte 0.001584s, total 0.001601s
+
+==============================================================================
+# A2 tools/call slow_count(2) with a progressToken
+==============================================================================
+# request body: {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"slow_count","arguments":{"n":2},"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"curl-study","version":"0"},"io.modelcontextprotocol/clientCapabilities":{},"io.modelcontextprotocol/logLevel":"info","progressToken":"p1"}}}
+
+HTTP/1.1 200 OK
+date: Sun, 18 Oct 2026 14:25:44 GMT
+server: uvicorn
+content-type: text/event-stream
+cache-control: no-cache, no-transform
+connection: keep-alive
+x-accel-buffering: no
+Transfer-Encoding: chunked
+
+event: message
+data: {"jsonrpc":"2.0","method":"notifications/message","params":{"level":"info","data":"starting to count to 2"}}
+
+event: message
+data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"p1","progress":1,"total":2,"message":"at 1"}}
+
+event: message
+data: {"jsonrpc":"2.0","method":"notifications/message","params":{"level":"info","data":"reached 1"}}
+
+event: message
+data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"p1","progress":2,"total":2,"message":"at 2"}}
+
+event: message
+data: {"jsonrpc":"2.0","method":"notifications/message","params":{"level":"info","data":"reached 2"}}
+
+event: message
+data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"text":"counted to 2","type":"text"}],"isError":false,"resultType":"complete","structuredContent":{"result":"counted to 2"},"_meta":{"io.modelcontextprotocol/serverInfo":{"name":"study-server","version":"0.1.0"}}}}
+
+
+# curl: http 1.1, status 200, first byte 0.001921s, total 2.006574s
+
+==============================================================================
+# A3 same call WITHOUT the Mcp-Method header (what does the server do?)
+==============================================================================
+# request body: {"jsonrpc":"2.0","id":3,"method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"curl-study","version":"0"},"io.modelcontextprotocol/clientCapabilities":{},"io.modelcontextprotocol/logLevel":"info"}}}
+
+HTTP/1.1 400 Bad Request
+date: Sun, 18 Oct 2026 14:25:46 GMT
+server: uvicorn
+content-length: 119
+content-type: application/json
+
+{"jsonrpc":"2.0","id":3,"error":{"code":-32020,"message":"mcp-method header does not match the request body's method"}}
+# curl: http 1.1, status 400, first byte 0.001348s, total 0.001371s
+
+==============================================================================
+# PART B: 2025-06-18 (handshake family). initialize first; session id in a header.
+==============================================================================
+
+==============================================================================
+# B1 initialize
+==============================================================================
+# request body: {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl-study","version":"0"}}}
+
+HTTP/1.1 200 OK
+date: Sun, 18 Oct 2026 14:25:46 GMT
+server: uvicorn
+cache-control: no-cache, no-transform
+connection: keep-alive
+content-type: text/event-stream
+mcp-session-id: 61fc66f05079408db77f1c6740424302
+x-accel-buffering: no
+Transfer-Encoding: chunked
+
+event: message
+data: {"jsonrpc":"2.0","id":1,"result":{"capabilities":{"prompts":{"listChanged":false},"resources":{"listChanged":false,"subscribe":false},"tools":{"listChanged":false}},"protocolVersion":"2025-06-18","serverInfo":{"name":"study-server","version":"0.1.0"}}}
+
+
+# curl: status 200
+# session id minted by server: 61fc66f05079408db77f1c6740424302
+
+==============================================================================
+# B2 notifications/initialized
+==============================================================================
+# request body: {"jsonrpc":"2.0","method":"notifications/initialized"}
+
+HTTP/1.1 202 Accepted
+date: Sun, 18 Oct 2026 14:25:46 GMT
+server: uvicorn
+content-type: application/json
+mcp-session-id: 61fc66f05079408db77f1c6740424302
+content-length: 0
+
+
+# curl: http 1.1, status 202, first byte 0.000933s, total 0.000944s
+
+==============================================================================
+# B3 tools/call slow_count(2), session header, progressToken
+==============================================================================
+# request body: {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"slow_count","arguments":{"n":2},"_meta":{"progressToken":"p1"}}}
+
+HTTP/1.1 200 OK
+date: Sun, 18 Oct 2026 14:25:46 GMT
+server: uvicorn
+cache-control: no-cache, no-transform
+connection: keep-alive
+content-type: text/event-stream
+mcp-session-id: 61fc66f05079408db77f1c6740424302
+x-accel-buffering: no
+Transfer-Encoding: chunked
+
+event: message
+data: {"jsonrpc":"2.0","method":"notifications/message","params":{"level":"info","data":"starting to count to 2"}}
+
+event: message
+data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"p1","progress":1,"total":2,"message":"at 1"}}
+
+event: message
+data: {"jsonrpc":"2.0","method":"notifications/message","params":{"level":"info","data":"reached 1"}}
+
+event: message
+data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"p1","progress":2,"total":2,"message":"at 2"}}
+
+event: message
+data: {"jsonrpc":"2.0","method":"notifications/message","params":{"level":"info","data":"reached 2"}}
+
+event: message
+data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"text":"counted to 2","type":"text"}],"isError":false,"structuredContent":{"result":"counted to 2"}}}
+
+
+# curl: http 1.1, status 200, first byte 0.001110s, total 2.005828s
+
+==============================================================================
+# B4 tools/call WITHOUT the session header
+==============================================================================
+# request body: {"jsonrpc":"2.0","id":3,"method":"tools/list","params":{}}
+
+HTTP/1.1 400 Bad Request
+date: Sun, 18 Oct 2026 14:25:48 GMT
+server: uvicorn
+content-type: application/json
+mcp-session-id: 080ed678a32746a7987f6fbd8e1ad6cd
+content-length: 95
+
+{"jsonrpc":"2.0","id":null,"error":{"code":-32600,"message":"Bad Request: Missing session ID"}}
+# curl: http 1.1, status 400, first byte 0.001628s, total 0.001651s
+
+==============================================================================
+# B5 GET (2025 standalone stream) and DELETE (end session)
+==============================================================================
+curl: (28) Operation timed out after 5006 milliseconds with 0 bytes received
+HTTP/1.1 200 OK
+date: Sun, 18 Oct 2026 14:25:48 GMT
+server: uvicorn
+cache-control: no-cache, no-transform
+connection: keep-alive
+content-type: text/event-stream
+mcp-session-id: 61fc66f05079408db77f1c6740424302
+x-accel-buffering: no
+Transfer-Encoding: chunked
+
+
+# curl: status 200
+HTTP/1.1 200 OK
+date: Sun, 18 Oct 2026 14:25:53 GMT
+server: uvicorn
+content-type: application/json
+mcp-session-id: 61fc66f05079408db77f1c6740424302
+content-length: 0
+
+
+# curl: status 200

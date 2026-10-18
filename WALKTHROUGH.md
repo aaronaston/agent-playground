@@ -6,9 +6,9 @@ The linear path through the [study guide](STUDY_GUIDE.md). The guide says *what*
 
 | | |
 |---|---|
-| **Now** | Step 1.6 – Capture an MCP Streamable HTTP session (build the smallest MCP server; this is also the first hands-on of Part 2) |
-| **Next** | B1 checkpoint, then Step 2.1 – MCP versions and the two families |
-| **Last done** | Step 1.5 – LLM API stream captured and annotated, OpenAI Responses API (2026-10-18) |
+| **Now** | Step 2.1 – MCP versions and the two families (read the four changelogs; you have already seen both families on the wire) |
+| **Next** | Step 2.2 – finish the transport pair: stdio by hand, and an SDK client capture |
+| **Last done** | Step 1.6 and the B1 checkpoint – MCP server built, both protocol families captured; Part 1 complete (2026-10-18) |
 
 Legend: `[x]` done · `[~]` in progress · `[ ]` not started
 
@@ -18,6 +18,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` not started
 |---|---|---|
 | 2026-10-17 | 1.1 | SSE is a line-oriented text format on an ordinary HTTP response; `curl -N` shows the whole thing. |
 | 2026-10-17 | 1.2 | `Last-Event-ID` is a request header the browser adds on reconnect; resume only means something if events exist independently of connections. |
+| 2026-10-18 | 1.6 | One SDK server answers both MCP families; SSE appears only when there is something to say before the result; header mirroring and session ids are both enforced with a 400. |
 | 2026-10-18 | 1.5 | A production LLM stream is plain SSE over one HTTP/2 stream behind a CDN; `event:` carries the type, ordering lives in a `sequence_number`, there is no `Last-Event-ID` resume, and usage arrives only in the final event. |
 | 2026-10-18 | 1.3 | ALPN picks the version before any request; HTTP/2 multiplexes streams on one connection so the six-per-host cap and head-of-line blocking disappear; an L7 proxy routes per request, so one client connection never implies one backend. |
 
@@ -81,17 +82,13 @@ What it showed: `event:` names the type and the JSON repeats it; no `id:` lines,
 
 Also captured: a streamed tool call and its follow-up (`experiments/capture_tool_call.py`, annotated in `captures/openai-tool-call-stream.annotated.md`). Exchange 1 ends `completed` with a `function_call` item instead of text; the client runs the tool; exchange 2 resends the conversation plus the result. Keep this next to the MRTR transcript in `experiments/02-mcp/transcripts/` when doing step 2.5: it is the same pattern.
 
-### [ ] 1.6 Capture an MCP Streamable HTTP session
-**Goal:** the bridge into Part 2. See MCP's use of SSE next to the Messages API's and notice the `event:` field is always `message`.
+### [x] 1.6 Capture an MCP Streamable HTTP session
+Done 2026-10-18. Server: `experiments/02-mcp/server.py` (mcp SDK 2.3.0, one tool that logs and reports progress). Capture script and annotation: `experiments/02-mcp/capture_session.sh`, `captures/streamable-http-session.*`.
 
-Do: build the smallest possible MCP server with the Python SDK (`uv add mcp`), one tool that sleeps and reports progress, served over Streamable HTTP. Drive it with curl: `tools/list`, then `tools/call`. Save both the requests and responses, headers included, to `experiments/captures/mcp-session.txt`.
+What it showed: the released SDK speaks 2026-07-28 by default and still answers 2025 handshake clients from the same server. `tools/list` came back as plain JSON; only the slow tool call got an SSE stream, with `notifications/message` and `notifications/progress` arriving once a second before the result. `event:` is always `message`. Omitting `Mcp-Method` (2026) or `Mcp-Session-Id` (2025) is a 400. `ctx.info()` warns that logging is deprecated.
 
-Look for: which protocol version the SDK speaks by default (handshake family with `initialize` + `Mcp-Session-Id`, or 2026-07-28 with `_meta` and `Mcp-Method`). The `Accept` header listing both `application/json` and `text/event-stream`. Whether `tools/list` came back as JSON or as a stream.
-
-Done when: you can name every message in the capture and say which revision it is.
-
-### B1 checkpoint
-Write the "why SSE, not WebSockets, at all three layers" paragraph in notes.md. Then move the **You are here** block to 2.1.
+### [x] B1 checkpoint
+Draft paragraph added to `experiments/00-protocols/notes.md` ("Why SSE at all three layers"). Rewrite it in your own words when you disagree with any of it; that is the test.
 
 ---
 
@@ -104,7 +101,9 @@ Read the changelogs for 2025-03-26, 2025-06-18, 2025-11-25, 2026-07-28, in order
 
 Done when: you can explain the handshake/modern split without notes.
 
-### [ ] 2.2 Minimal server, both transports
+### [~] 2.2 Minimal server, both transports
+Streamable HTTP captures for both families exist from 1.6. Remaining: run `server.py stdio` and drive it with hand-typed JSON lines; capture a session from an SDK *client* and compare with the curl one.
+
 Take the server from 1.6. Run it over stdio (drive it with a few hand-typed JSON lines) and over Streamable HTTP. If the SDK lets you pin the protocol version, capture a session in each family.
 
 Done when: two annotated captures exist, one per family.
@@ -114,10 +113,8 @@ Add one of each. Return `structuredContent` from the tool. Call all four from an
 
 Done when: you can say what a prompt is *for* that a tool isn't.
 
-### [ ] 2.4 Progress and log messages
-Make the tool take five seconds and emit `notifications/progress` and `notifications/message` along the way. Watch them arrive on the response stream before the result.
-
-Done when: the capture shows notifications preceding the result on the same stream.
+### [x] 2.4 Progress and log messages
+Done as part of 1.6: `slow_count` emits both, and the capture shows them preceding the result on the same stream in both families. Note the SDK's deprecation warning on `ctx.info()`.
 
 ### [ ] 2.5 Elicitation and MRTR
 Implement a form-mode elicitation. Trace the round trip twice: as a 2025-style server-initiated `elicitation/create`, and as a 2026-07-28 `input_required` result followed by a retry. Compare each capture against the simulated transcript in `experiments/02-mcp/transcripts/elicitation-two-ways.md` and fix whatever the simulation got wrong.

@@ -17,10 +17,11 @@ Each experiment is self-contained, reproducible, and heavily commented for learn
 |---|-----------|-------|--------|
 | 00 | Protocols | SSE, WebSockets, HTTP/1.1 vs HTTP/2 warm-up ([experiments/00-protocols](experiments/00-protocols)) | ✅ Done |
 | 01 | OpenAI | Chatbot (Responses API) + Agents SDK agent | 🚧 In Progress |
-| 02 | Anthropic | Chatbot (Messages API) + Claude Agent SDK agent | 📋 Planned |
-| 03 | LangGraph | Chatbot + agent graph | 📋 Planned |
-| 04 | Microsoft Agent Framework | Chatbot + agent | 📋 Planned |
-| 05+ | MCP/A2A, Keycloak OAuth, enterprise-managed auth | See the study guide | 📋 Planned |
+| 02 | MCP | Protocol and features: minimal server, wire captures, elicitation, tasks ([experiments/02-mcp](experiments/02-mcp)) | 🚧 In Progress |
+| 03 | Anthropic | Chatbot (Messages API) + Claude Agent SDK agent | 📋 Planned |
+| 04 | LangGraph | Chatbot + agent graph | 📋 Planned |
+| 05 | Microsoft Agent Framework | Chatbot + agent | 📋 Planned |
+| 06+ | A2A, Keycloak OAuth, enterprise-managed auth | See the study guide | 📋 Planned |
 
 **Start here:** [WALKTHROUGH.md](WALKTHROUGH.md) says what to do next and where I am. [STUDY_GUIDE.md](STUDY_GUIDE.md) is the curriculum behind it. [QUESTIONS.md](QUESTIONS.md) logs the questions that changed the plan.
 
