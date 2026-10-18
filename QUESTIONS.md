@@ -142,3 +142,7 @@ Format: **Q** · **A** (a few lines) · **Changed** (what moved in WALKTHROUGH.m
 **Q: Where is `_meta` communicated? HTTP header? JSON-RPC property?**
 **A:** JSON-RPC property in the body: `params._meta` on requests and notifications, `result._meta` on results. Transport-independent (stdio has no headers at all). Two of its values are additionally *mirrored* into HTTP headers for proxies that route without parsing JSON: `MCP-Protocol-Version` (from `_meta.protocolVersion`) and `Mcp-Method` / `Mcp-Name` (from `method` / `params.name`). The body is the source of truth; the server checks the headers agree (step 4a: `-32020`). `progressToken` lives in `_meta` too.
 **Changed:** nothing.
+
+**Q: I see progress messages as SSE, but the claim is "it's not SSE". Elicitation and sampling end the stream; progress doesn't.**
+**A:** Progress is SSE; trace step 3 shows it. What 2026-07-28 removed is SSE as a *connection-level channel* (the standalone GET stream, `Last-Event-ID` resume), not SSE as a *response body format*. Every surviving stream belongs to one request and ends with that request's result. Progress and log messages are notifications on that stream and never end it; `complete` and `input_required` are both results and always end it. Elicitation ends the response because in this revision it *is* the response, not because of anything about SSE. Progress for resumed work appears on the retry's stream (6b).
+**Changed:** nothing; worth a line in the trace-to-spec note's Part 1 if it trips you again.
