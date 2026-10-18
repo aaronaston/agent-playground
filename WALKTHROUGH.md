@@ -37,11 +37,13 @@ Done. Server honours `Last-Event-ID`, returns 204 after the final event. Known l
 Do:
 ```bash
 python experiments/compare_http.py          # one request each: only shows ALPN picked the version
-python experiments/multiplex_demo.py        # A, B, C below; ~15 s against httpbin.org
+python experiments/multiplex_demo.py --json experiments/captures/multiplex_run.json   # A, B, C; ~15 s
+python experiments/multiplex_viz.py         # renders captures/multiplex_run.html; open it in a browser
 ```
+The HTML page draws every transfer as a bar on a shared time axis, grouped into lanes by TCP connection and split into connect / TLS / wait / body phases. Hover a bar for its numbers. The text output below is the same data without the picture.
 Look for, in the demo output:
 - **A.** Four parallel GETs. HTTP/1.1: `TCP connections: 4`. HTTP/2: `TCP connections: 1` and `stream ids: 1, 3, 5, 7`. Same work, one socket.
-- **B.** Eight 2-second requests with HTTP/1.1 capped at six connections (what a browser allows per host): six finish at about 2 s, two more at about 4 s. HTTP/2: all eight finish at about 2 s on one connection with eight streams. This is the cap that made the Comet era painful and that SSE over HTTP/1.1 still hits.
+- **B.** Eight 2-second requests with HTTP/1.1 capped at six connections (what a browser allows per host): six finish at about 2 s, two more at about 4 s. HTTP/2: all eight finish at about 2 s on one connection with eight streams. In the timeline, find the HTTP/1.1 lane that gets a second bar: it has no connect or TLS segment, because the connection was reused. This is the cap that made the Comet era painful and that SSE over HTTP/1.1 still hits.
 - **C.** A 3-second request then an instant one on one connection. HTTP/1.1: the instant one finishes at about 3.3 s, because responses on a connection are strictly ordered. HTTP/2: it finishes at about 0.1 s while the slow stream is still open. That is head-of-line blocking, and its absence.
 
 Then confirm where the version gets chosen:

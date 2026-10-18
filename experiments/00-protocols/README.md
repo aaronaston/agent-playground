@@ -9,6 +9,7 @@ This folder is the hands-on start of **Track B1** in [`STUDY_GUIDE.md`](../../ST
 - `experiments/websocket_server.py` and `websocket_demo.html` — a local WebSocket echo server and browser client.
 - `experiments/compare_http.py` — one request each over HTTP/1.1 and HTTP/2: shows which version ALPN negotiated.
 - `experiments/multiplex_demo.py` — several requests at once: connection count, the browser's six-per-host cap, and head-of-line blocking.
+- `experiments/multiplex_viz.py` — renders a `--json` capture from `multiplex_demo.py` as an HTML timeline (lanes per TCP connection, bars split into connect / TLS / wait / body).
 
 ## Run the experiments
 
@@ -54,7 +55,8 @@ Open <http://127.0.0.1:8765/> in a browser, connect, and send a message. The bro
 ```bash
 cd experiments/00-protocols
 python experiments/compare_http.py
-python experiments/multiplex_demo.py      # or: multiplex_demo.py B  (one demo)
+python experiments/multiplex_demo.py --json experiments/captures/multiplex_run.json   # or: ... B --json ...
+python experiments/multiplex_viz.py       # writes experiments/captures/multiplex_run.html
 ```
 
 `compare_http.py` makes one HTTP/1.1 and one HTTP/2 request and prints the negotiated version and timings. On its own that only shows that ALPN picked the version during the TLS handshake. `multiplex_demo.py` runs several transfers at once with `curl -Z` and prints a timeline: four parallel GETs (four connections vs. one connection with four streams), eight slow requests under a browser-style six-connection cap (two waves vs. one), and a fast request queued behind a slow one on a single connection (head-of-line blocking vs. none). Both scripts use httpbin.org; pass another HTTPS URL to `compare_http.py` if desired. Network conditions affect the numbers but not the shape.

@@ -57,3 +57,12 @@ Format: **Q** · **A** (a few lines) · **Changed** (what moved in WALKTHROUGH.m
 **Q: Why are the HTTP/2 stream IDs odd numbers only?**
 **A:** RFC 9113 uses parity to say who opened the stream: client-initiated are odd, server-initiated are even, each side counts upward independently so no coordination is needed. Stream 0 is the connection itself. Even streams exist only for server push, which is effectively dead (Chrome removed it in 2022), so in practice you only see odd. IDs start at 1 over TLS/ALPN (an h2c upgrade would consume 1 implicitly and start at 3), never reset, and exhausting the 31-bit space forces a new connection.
 **Changed:** nothing.
+
+**Q: Can we visualise the HTTP/1.1 vs HTTP/2 run instead of reading a text timeline?**
+**A:** Yes. `multiplex_demo.py --json` now records per-transfer phase timings (connect, TLS, first byte, total) and curl's `conn_id`; `multiplex_viz.py` renders them as a Gantt-style timeline, lanes per TCP connection, both protocols on one axis per demo. Reuse shows up as a bar with no handshake segments; head-of-line blocking as a short bar that cannot start until the long one ends.
+**Changed:** step 1.3 now includes the visualisation; two new scripts.
+
+**Q: Is HTTP/1.1-based Streamable HTTP simplex and HTTP/2-based duplex? How does a client send while the server is streaming, and how does it answer a server request?**
+**A:** Neither is simplex; TCP is duplex underneath both. HTTP/1.1 is half-duplex *per connection at the message level*: one request, then one response, and a connection streaming a response cannot carry another request. So an MCP client's next message is simply another POST on another connection (or an idle one from the pool). HTTP/2 has the same request/response rule per *stream*; the streams just share one connection. MCP's design is identical on both: every client→server message is a new HTTP request; the "duplex" is concurrency of requests, not two-way use of one response. A 2025-style server request (sampling, elicitation) arrives on a response stream; the client answers by POSTing a JSON-RPC *response* to the same endpoint, which the server acknowledges with 202, then continues the original stream. That cross-connection correlation needs server state (sessions, sticky routing), which is what 2026-07-28 removed by replacing server-initiated requests with MRTR retries.
+**Changed:** nothing in the steps; worth folding into B2.3 notes when reached.
+
