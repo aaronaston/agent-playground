@@ -14,14 +14,16 @@ Then:                     uv run python trace_session.py            # current pr
 Output goes to the terminal and to captures/streamable-http-session.txt
 """
 import json
+import os
 import socket
 import sys
 import time
 from pathlib import Path
 
-HOST, PORT, PATH = "127.0.0.1", 8000, "/mcp"
+HOST, PORT, PATH = "127.0.0.1", int(os.environ.get("PORT", "8000")), "/mcp"
 OUT = Path(__file__).parent / "captures" / "streamable-http-session.txt"
 LINES = []
+LAST = []   # JSON objects parsed from the most recent response
 
 
 def out(s=""):
@@ -82,6 +84,8 @@ def show_json(prefix, raw):
         return None
     for line in json.dumps(obj, indent=1).splitlines():
         out(f"{prefix}{line}")
+    if prefix.strip().startswith("←"):
+        LAST.append(obj)
     return obj
 
 
@@ -101,6 +105,7 @@ def describe(obj):
 
 def request(conn, step, what, method, headers, body=None, read_timeout=20, idle_note=None):
     banner(f"{step}  ·  {what}")
+    LAST.clear()
     conn.requests += 1
     out(f"  [conn #{conn.n}] request #{conn.requests} on this connection")
     out()
@@ -176,7 +181,7 @@ def request(conn, step, what, method, headers, body=None, read_timeout=20, idle_
 
 META = {"io.modelcontextprotocol/protocolVersion": "2026-07-28",
         "io.modelcontextprotocol/clientInfo": {"name": "trace-study", "version": "0"},
-        "io.modelcontextprotocol/clientCapabilities": {},
+        "io.modelcontextprotocol/clientCapabilities": {"elicitation": {"form": {}}},
         "io.modelcontextprotocol/logLevel": "info"}
 ACCEPT = ["Content-Type: application/json", "Accept: application/json, text/event-stream"]
 
@@ -235,6 +240,44 @@ def listen_then_trigger():
     out(); out(f"  >>> back to conn #{L.n}: did anything arrive on the listen stream?")
     read_events(L, 2, "quiet again")
     L.close("done listening; closing the stream is how a client unsubscribes")
+
+
+def weather_round_trip():
+    banner("6  ·  a tool that needs the user: MRTR (multi round-trip request)",
+           "Call weather with no arguments. The server cannot ask the client anything directly in this protocol, so it ends "
+           "the response with resultType input_required, packs its position into requestState, and stops. The client "
+           "collects the answer and retries the same call with inputResponses and the state echoed back.")
+    c = Conn()
+    request(c, "6a", "MCP tools/call weather, no arguments  (expect: input_required with an elicitation/create inside)",
+            "POST", ACCEPT + ["MCP-Protocol-Version: 2026-07-28", "Mcp-Method: tools/call", "Mcp-Name: weather"],
+            rpc(7, "tools/call", {"name": "weather", "arguments": {}, "_meta": META}))
+    c.close()
+    res = next((o["result"] for o in LAST if "result" in o), {})
+    reqs = res.get("inputRequests", {})
+    state = res.get("requestState")
+    if res.get("resultType") != "input_required" or not reqs:
+        out("  !! expected input_required; got something else, stopping this step"); return
+    key, ask = next(iter(reqs.items()))
+    out(); out(f"  >>> the response is finished (HTTP-wise) but the tool is not: resultType={res['resultType']!r}")
+    out(f"  >>> the server asked one question, keyed {key!r}: {ask['method']} \"{ask['params'].get('message')}\"")
+    out(f"  >>> requestState is {len(state or '')} chars of sealed, opaque server state; the client must echo it unchanged")
+    out("  >>> (the user is now shown the question and types: Toronto)")
+    answer = {key: {"action": "accept", "content": {"city": "Toronto"}}}
+    c = Conn()
+    request(c, "6b", "MCP tools/call weather AGAIN, same arguments + inputResponses + requestState  (expect: log, then the real result)",
+            "POST", ACCEPT + ["MCP-Protocol-Version: 2026-07-28", "Mcp-Method: tools/call", "Mcp-Name: weather"],
+            rpc(8, "tools/call", {"name": "weather", "arguments": {}, "inputResponses": answer, "requestState": state, "_meta": META}))
+    c.close()
+    c = Conn()
+    request(c, "6c", "the same retry with ONE character changed in requestState  (expect: rejected; the seal is checked)",
+            "POST", ACCEPT + ["MCP-Protocol-Version: 2026-07-28", "Mcp-Method: tools/call", "Mcp-Name: weather"],
+            rpc(9, "tools/call", {"name": "weather", "arguments": {}, "inputResponses": answer, "requestState": (state or "") + "x", "_meta": META}))
+    c.close()
+    c = Conn()
+    request(c, "6d", "the retry where the user DECLINED to answer  (expect: the call ends without weather)",
+            "POST", ACCEPT + ["MCP-Protocol-Version: 2026-07-28", "Mcp-Method: tools/call", "Mcp-Name: weather"],
+            rpc(10, "tools/call", {"name": "weather", "arguments": {}, "inputResponses": {key: {"action": "decline"}}, "requestState": state, "_meta": META}))
+    c.close()
 
 
 def legacy():
@@ -308,6 +351,7 @@ def main():
     c.close()
 
     listen_then_trigger()
+    weather_round_trip()
 
     if want_legacy:
         legacy()
@@ -315,6 +359,7 @@ def main():
     banner("SUMMARY")
     out(f"  TCP connections opened by the client: {Conn.count}")
     out("  Every MCP message the client sent was its own HTTP request. The server never sent anything the client did not ask for,")
+    out("  and when it needed the user it ended its response with input_required and waited for a retry (step 6).")
     out("  and the only long-lived stream was the one the client opened on purpose with subscriptions/listen.")
     out("  SSE appeared on the slow tool call (notifications before the result) and on the listen stream; everything else was plain JSON.")
     if not want_legacy:

@@ -77,12 +77,70 @@ stream, not on conn #6's response, because it is unrelated to that request; and 
 request-scoped messages from step 3 (progress, log) would never appear here. Closing the
 stream is the unsubscribe; there is no message for it.
 
+## Step 6: a tool that needs the user (MRTR, multi round-trip request)
+
+The `weather` tool declares its `city` parameter as
+`Annotated[CityAnswer, Resolve(ask_city)]`, and the resolver returns
+`Elicit("Weather for which city?", CityAnswer)`. In this protocol the server has no way
+to ask the client anything directly, so the SDK turns that into the following.
+
+```
+6a  conn #7   → tools/call weather, arguments {}
+              ← +0.010s  200, plain JSON (791 bytes)
+                 result.resultType = "input_required"
+                 result.inputRequests = { "__main__:ask_city": { method: elicitation/create,
+                                           params: { mode: form, message: "Weather for which city?",
+                                                     requestedSchema: { city: string, required } } } }
+                 result.requestState = "v1.SMSj4n…"  (351 chars, sealed)
+              the response is over; the server has stopped and remembers nothing
+
+              (the user is shown the question and answers "Toronto")
+
+6b  conn #8   → tools/call weather, arguments {} again, plus
+                 inputResponses = { "__main__:ask_city": { action: accept, content: { city: "Toronto" } } }
+                 requestState  = the same 351 chars, unchanged
+              ← +0.004s  200, text/event-stream
+                 #1 notifications/message  "looking up Toronto"
+                 #2 result id=8  "Toronto: 11 °C, overcast, light wind", resultType complete
+
+6c  conn #9   → same as 6b with one character appended to requestState
+              ← 400, JSON-RPC error -32602 "Invalid or expired requestState", data.reason invalid_request_state
+
+6d  conn #10  → same as 6b but inputResponses = { "__main__:ask_city": { action: decline } }
+              ← 200, result isError: true, "Resolver for parameter 'city' could not resolve: elicitation was decline"
+```
+
+Things to notice:
+
+- **6a is a complete, successful HTTP response.** Nothing is pending anywhere. The only
+  thing that says "not done" is `resultType: "input_required"` inside the JSON.
+- **The client had to declare it can answer.** The request's `_meta` carries
+  `clientCapabilities: { elicitation: { form: {} } }`. Without that the server may not
+  include an elicitation in `inputRequests`.
+- **The key is the server's choice.** Here the SDK derived `__main__:ask_city` from the
+  resolver's name. The client echoes it; it never interprets it.
+- **`requestState` is sealed, not just encoded.** One changed character in 6c and the
+  server refuses with `-32602`. The SDK seals it with a key (`RequestStateSecurity`),
+  binds it to the request and a time window, and, when auth is present, to the principal.
+- **6b resends the original call.** Same method, same arguments, new id, plus the two
+  new fields. Any server instance could have handled it. The log line "looking up
+  Toronto" shows the tool body ran only now, on the retry.
+- **Decline is a normal tool error, not a protocol error.** 6d is a 200 with
+  `isError: true`, so the model gets a readable reason and can decide what to do.
+
+Compare with the simulated transcript in `transcripts/elicitation-two-ways.md`, written
+before this capture: the placement of `inputResponses` and `requestState` in `params`
+was right; the key naming and the 400-on-tamper behaviour were SDK details the
+simulation could not know.
+
 ## Summary of the wire
 
-Six TCP connections, every one opened by the client. Eight HTTP requests. Two SSE
-streams: the slow tool call (notifications before its result) and the listen channel.
-Everything else was a single JSON object. The server never initiated a connection,
-never sent a request to the client, and kept no state between requests.
+Ten TCP connections, every one opened by the client. Twelve HTTP requests. Three SSE
+streams: the slow tool call (notifications before its result), the listen channel, and
+the weather retry (one log line before its result). Everything else was a single JSON
+object. The server never initiated a connection, never sent a request to the client,
+and kept no state between requests; when it needed the user it ended its response with
+`input_required` and let the client bring the state back.
 
 ## Appendix: the 2025-06-18 handshake family
 

@@ -85,7 +85,7 @@ Also captured: a streamed tool call and its follow-up (`experiments/capture_tool
 ### [x] 1.6 Capture an MCP Streamable HTTP session
 Done 2026-10-18. Server: `experiments/02-mcp/server.py` (mcp SDK 2.3.0, one tool that logs and reports progress). Trace script and annotation: `experiments/02-mcp/trace_session.py`, `captures/streamable-http-session.*`. The trace labels every line by direction (`→` client, `←` server), timestamps the server's bytes, and numbers the TCP connections, so you can see that each MCP message is its own HTTP request.
 
-What it showed (protocol 2026-07-28): no handshake; `server/discover` is the optional opener; `tools/list` came back as plain JSON; only the slow tool call got an SSE stream, with `notifications/message` and `notifications/progress` once a second before the result; `subscriptions/listen` is the one long-lived stream, and a `tools/list_changed` arrived on it when another connection triggered a change. Rejections: missing `Mcp-Method` → `-32020`, unknown version → `-32022` with the supported list, `GET` → `405`. The 2025 handshake family is available behind `--legacy` for recognising older servers.
+What it showed (protocol 2026-07-28): no handshake; `server/discover` is the optional opener; `tools/list` came back as plain JSON; only the slow tool call got an SSE stream, with `notifications/message` and `notifications/progress` once a second before the result; `subscriptions/listen` is the one long-lived stream, and a `tools/list_changed` arrived on it when another connection triggered a change. The `weather` tool shows MRTR end to end: `input_required` with an `elicitation/create` inside and a sealed `requestState`, then the retry with `inputResponses` producing the answer, a tampered state refused, a decline surfacing as a tool error. Rejections: missing `Mcp-Method` → `-32020`, unknown version → `-32022` with the supported list, `GET` → `405`. The 2025 handshake family is available behind `--legacy` for recognising older servers.
 
 ### [x] B1 checkpoint
 Draft paragraph added to `experiments/00-protocols/notes.md` ("Why SSE at all three layers"). Rewrite it in your own words when you disagree with any of it; that is the test.
@@ -118,7 +118,9 @@ Done when: you can say what a prompt is *for* that a tool isn't.
 ### [x] 2.4 Progress and log messages
 Done as part of 1.6: `slow_count` emits both, and the capture shows them preceding the result on the same stream in both families. Note the SDK's deprecation warning on `ctx.info()`.
 
-### [ ] 2.5 Elicitation and MRTR
+### [~] 2.5 Elicitation and MRTR
+The 2026-07-28 half is captured (trace step 6: `weather`). Remaining, and optional: the 2025-style server-initiated `elicitation/create` mid-stream, which the SDK still emits for `--legacy` clients.
+
 Implement a form-mode elicitation. Trace the round trip twice: as a 2025-style server-initiated `elicitation/create`, and as a 2026-07-28 `input_required` result followed by a retry. Compare each capture against the simulated transcript in `experiments/02-mcp/transcripts/elicitation-two-ways.md` and fix whatever the simulation got wrong.
 
 Done when: you can draw both sequence diagrams from memory.

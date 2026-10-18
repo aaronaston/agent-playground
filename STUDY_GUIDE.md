@@ -138,7 +138,7 @@ MCP is JSON-RPC 2.0 over a transport. Learn it against the **current revision (2
 - **MRTR (Multi Round-Trip Requests)**: the 2026-07-28 replacement for all server-initiated requests. Server returns `resultType: "input_required"` with `inputRequests`; client retries the original request with `inputResponses`. `requestState` carries server correlation.
 - **Cancellation**: `notifications/cancelled`; a dropped HTTP connection is *not* a cancel.
 - [x] Implement a long-running tool that emits progress and log messages; watch them arrive before the result.
-- [ ] Implement an elicitation (form mode) and trace the round trip on the wire, once as a 2025-style server-initiated request and once as MRTR.
+- [~] Implement an elicitation (form mode) and trace the round trip on the wire, once as a 2025-style server-initiated request and once as MRTR. (MRTR captured 2026-10-18; 2025 style optional)
 - [ ] Try sampling against a 2025-era client to see what is being deprecated and why.
 
 #### B2.6 Extensions and long-running work
@@ -157,7 +157,7 @@ Done when: I can read a captured MCP session and name every message, say which r
 - [ ] Wire captures: curl and SDK, both families
 - [ ] Tools, resources, prompts, completion implemented and called
 - [x] Progress and log messages observed mid-request
-- [ ] Elicitation round trip traced (server-initiated and MRTR)
+- [~] Elicitation round trip traced (MRTR done; server-initiated optional)
 - [ ] Sampling tried and its deprecation understood
 - [ ] Task extension tried
 - [ ] Decision table written
