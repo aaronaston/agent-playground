@@ -10,6 +10,7 @@ This folder is the hands-on start of **Track B1** in [`STUDY_GUIDE.md`](../../ST
 - `experiments/compare_http.py` — one request each over HTTP/1.1 and HTTP/2: shows which version ALPN negotiated.
 - `experiments/multiplex_demo.py` — several requests at once: connection count, the browser's six-per-host cap, and head-of-line blocking.
 - `experiments/multiplex_viz.py` — renders a `--json` capture from `multiplex_demo.py` as an HTML timeline (lanes per TCP connection, bars split into connect / TLS / wait / body).
+- `experiments/lb_demo/` — two backends behind nginx as an L7 (HTTP) proxy and as an L4 (TCP) proxy; shows that an L7 proxy routes each request on one client connection independently. Needs Docker.
 
 ## Run the experiments
 
@@ -60,6 +61,15 @@ python experiments/multiplex_viz.py       # writes experiments/captures/multiple
 ```
 
 `compare_http.py` makes one HTTP/1.1 and one HTTP/2 request and prints the negotiated version and timings. On its own that only shows that ALPN picked the version during the TLS handshake. `multiplex_demo.py` runs several transfers at once with `curl -Z` and prints a timeline: four parallel GETs (four connections vs. one connection with four streams), eight slow requests under a browser-style six-connection cap (two waves vs. one), and a fast request queued behind a slow one on a single connection (head-of-line blocking vs. none). Both scripts use httpbin.org; pass another HTTPS URL to `compare_http.py` if desired. Network conditions affect the numbers but not the shape.
+
+### Load balancers and connection reuse
+
+```bash
+cd experiments/00-protocols
+./experiments/lb_demo/run.sh      # needs Docker; pulls python:3.12-alpine and nginx:alpine
+```
+
+Starts `backend1` and `backend2` and an nginx with two listeners: `:8080` is an HTTP (L7) proxy that speaks HTTP/2 to the client and HTTP/1.1 to the backends; `:8081` is a TCP (L4) proxy. Four requests on one client connection go to both backends through `:8080` (over HTTP/2 streams and over HTTP/1.1 keep-alive alike) and to a single backend through `:8081`. Containers are removed on exit.
 
 ## Continue the study
 

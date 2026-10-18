@@ -52,6 +52,8 @@ curl -v --http2 -o /dev/null https://httpbin.org/get 2>&1 | grep -E 'ALPN|^< HTT
 ```
 The `ALPN: server accepted h2` line is inside the TLS handshake, before any request is sent. That is why the 502 run still reported `HTTP version: 2`.
 
+Optional, if Docker is running: `./experiments/lb_demo/run.sh`. It puts two backends behind nginx twice, once as an HTTP (L7) proxy and once as a TCP (L4) proxy, and sends four requests down one client connection to each. Look for: through the L7 proxy the requests alternate between backends, on HTTP/2 streams and on an HTTP/1.1 keep-alive connection alike; through the L4 proxy they all hit one backend. This is the fact behind "sticky routing" in the MCP session discussion: one client connection does not mean one backend once an HTTP-aware proxy is in the path.
+
 Record in notes.md: the three numbers from B and C, and one sentence each on what connection reuse, multiplexing, and head-of-line blocking mean, in your own words. Note the caveat: all HTTP/2 streams still share one TCP connection, so packet loss stalls them together (HTTP/3 is the fix for that; out of scope).
 
 Done when: you can say why a page that opens eight SSE streams behaves differently over HTTP/1.1 and HTTP/2, and where in the connection lifecycle the version is decided.

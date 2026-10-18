@@ -64,6 +64,17 @@ HTTP/2 multiplexing can reduce the need for parallel connections, but it does no
 
 Why it matters here: every SSE stream holds a response open for its whole life. Over HTTP/1.1 that permanently consumes one of the browser's ~6 connections to that host, so a page with several live streams starves its other requests. Over HTTP/2 each stream is just another stream id on the one connection. Demo C is the mechanism: on HTTP/1.1 nothing else can use a connection while a response is in flight, and an SSE response is in flight indefinitely.
 
+### Connection reuse does not mean backend affinity (`lb_demo/`, 2026-10-18)
+
+| Path | Client connections | Where the four requests went |
+|---|---|---|
+| L7 proxy, HTTP/2 | 1 (streams 1, 3, 5, 7) | backend1, backend1, backend2, backend2 |
+| L7 proxy, HTTP/1.1 keep-alive | 1 (reused three times) | backend2, backend1, backend2, backend1 |
+| L4 proxy, HTTP/1.1 keep-alive | 1 (reused three times) | backend1 ×4 |
+| L4 proxy, three new connections | 3 | backend2, backend1, backend2 |
+
+A TCP (L4) load balancer forwards bytes, so one client connection maps to one backend connection for its life. An HTTP (L7) proxy terminates the client's connection, parses each request or HTTP/2 stream, and picks an upstream for it from a shared pool. nginx's default is round robin per request; the same holds for Envoy, HAProxy in HTTP mode, and cloud application load balancers. So "same connection" gives no affinity through an L7 proxy, and HTTP/2 does not change that: nginx cannot even speak HTTP/2 to upstreams here, so the client's one connection fans out into ordinary HTTP/1.1 upstream connections. Affinity has to be requested explicitly, by hashing on a cookie or header (which is why 2025 MCP put the session id in a header rather than only in the JSON body).
+
 ## Practical tradeoffs and pitfalls
 
 - **Connection reuse and multiplexing:** Reuse avoids repeated setup. HTTP/2 can multiplex concurrent requests; SSE occupies an open response stream, while a WebSocket uses a long-lived upgraded connection.

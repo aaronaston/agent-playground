@@ -78,3 +78,8 @@ Format: **Q** · **A** (a few lines) · **Changed** (what moved in WALKTHROUGH.m
 **Q: What is MRTR?**
 **A:** Multi Round-Trip Requests, introduced in MCP 2026-07-28. One request may take several round trips: the server returns `resultType: "input_required"` with `inputRequests` and an opaque `requestState`; the client retries the same request with `inputResponses` and the echoed state; repeat until `resultType: "complete"`. Mandatory replacement for server-initiated `elicitation/create`, `sampling/createMessage`, and `roots/list`. Every exchange is self-contained; state travels through the client.
 **Changed:** nothing (already in the glossary and transcript A).
+
+**Q: Would a load balancer really route requests on one reused TCP connection to different backends? Isn't one TCP connection always one backend?**
+**A:** Depends on the layer, and the demo in `experiments/00-protocols/experiments/lb_demo/` shows both. An L4 (TCP) balancer: yes, one client connection → one backend for its life. An L7 (HTTP) proxy, which is what nginx, Envoy, HAProxy-in-http-mode and cloud ALBs are: no. It terminates the client connection and picks an upstream per request (or per HTTP/2 stream) from a shared pool; nginx round-robin sent four requests on one HTTP/2 connection to both backends, and alternated per request on one HTTP/1.1 keep-alive connection. Affinity must be asked for (cookie/header hashing), which is why the 2025 MCP session id is a header.
+**Changed:** step 1.3 gained an optional Docker demo; new table in notes.md.
+
