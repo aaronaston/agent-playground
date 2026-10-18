@@ -80,7 +80,7 @@ Hands-on:
 - [x] Implement a tiny SSE endpoint.
 - [x] Compare one simple endpoint over HTTP/1.1 and HTTP/2.
 - [ ] Compare the same streaming use case over SSE and WebSockets.
-- [ ] Capture a Messages API stream.
+- [x] Capture an LLM API stream (OpenAI Responses, 2026-10-18; repeat with Anthropic Messages when a key exists).
 - [ ] Capture an MCP Streamable HTTP session.
 
 Done when: I can explain each event in a captured stream and why SSE (not WebSockets) is used.
@@ -91,7 +91,7 @@ Done when: I can explain each event in a captured stream and why SSE (not WebSoc
 - [x] Tiny SSE endpoint implemented
 - [x] HTTP/1.1 vs HTTP/2 differences observed
 - [ ] SSE vs WebSockets differences observed
-- [ ] LLM streaming captured
+- [x] LLM streaming captured
 - [ ] Can explain why SSE is used here instead of WebSockets
 
 ### B2. MCP: the protocol and its features

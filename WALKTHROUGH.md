@@ -6,9 +6,9 @@ The linear path through the [study guide](STUDY_GUIDE.md). The guide says *what*
 
 | | |
 |---|---|
-| **Now** | Step 1.5 – Capture a Messages API stream (one curl; the first real SSE stream from an LLM API) |
-| **Next** | Step 1.6 – Capture an MCP Streamable HTTP session (doubles as the start of Part 2) |
-| **Last done** | Step 1.3 – HTTP/1.1 vs HTTP/2, with the multiplexing timeline and the L7/L4 load-balancer demo (2026-10-18) |
+| **Now** | Step 1.6 – Capture an MCP Streamable HTTP session (build the smallest MCP server; this is also the first hands-on of Part 2) |
+| **Next** | B1 checkpoint, then Step 2.1 – MCP versions and the two families |
+| **Last done** | Step 1.5 – LLM API stream captured and annotated, OpenAI Responses API (2026-10-18) |
 
 Legend: `[x]` done · `[~]` in progress · `[ ]` not started
 
@@ -18,6 +18,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` not started
 |---|---|---|
 | 2026-10-17 | 1.1 | SSE is a line-oriented text format on an ordinary HTTP response; `curl -N` shows the whole thing. |
 | 2026-10-17 | 1.2 | `Last-Event-ID` is a request header the browser adds on reconnect; resume only means something if events exist independently of connections. |
+| 2026-10-18 | 1.5 | A production LLM stream is plain SSE over one HTTP/2 stream behind a CDN; `event:` carries the type, ordering lives in a `sequence_number`, there is no `Last-Event-ID` resume, and usage arrives only in the final event. |
 | 2026-10-18 | 1.3 | ALPN picks the version before any request; HTTP/2 multiplexes streams on one connection so the six-per-host cap and head-of-line blocking disappear; an L7 proxy routes per request, so one client connection never implies one backend. |
 
 ---
@@ -73,24 +74,10 @@ Record: a two-column table in notes.md: handshake, direction, framing, browser A
 
 Done when: you can argue for SSE over WebSockets for LLM streaming without mentioning "simpler".
 
-### [ ] 1.5 Capture a Messages API stream
-**Goal:** see a real production SSE stream and notice that here the `event:` field carries meaning.
+### [x] 1.5 Capture an LLM API stream
+Done 2026-10-18 with the OpenAI Responses API (`gpt-4.1-mini`), since that is the key on hand. Script: `experiments/capture_messages_stream.sh`; raw capture and annotation in `experiments/captures/openai-responses-stream.*`. Re-run against the Anthropic Messages API whenever a key exists; the shape is the same family (`message_start`, `content_block_delta`, ...).
 
-Do (needs `ANTHROPIC_API_KEY` in the environment):
-```bash
-curl -N https://api.anthropic.com/v1/messages \
-  -H "x-api-key: $ANTHROPIC_API_KEY" \
-  -H "anthropic-version: 2023-06-01" \
-  -H "content-type: application/json" \
-  -d '{"model":"claude-opus-5-5","max_tokens":200,"stream":true,
-       "messages":[{"role":"user","content":"Count to five, one number per line."}]}' \
-  | tee experiments/captures/messages-stream.txt
-```
-Look for: `message_start`, `content_block_start`, repeated `content_block_delta`, `content_block_stop`, `message_delta`, `message_stop`. Note that `event:` names the type *and* the JSON repeats it in a `type` field.
-
-Record: annotate the capture in a comment block at the top of the file: what each event is for and which ones carry usage numbers.
-
-Done when: you can explain every event in the capture.
+What it showed: `event:` names the type and the JSON repeats it; no `id:` lines, ordering is a `sequence_number` in the payload; a fixed opening and closing wrap a run of one-token deltas; usage only in the final event; first byte at 2.4 s, the whole stream in 0.16 s after that.
 
 ### [ ] 1.6 Capture an MCP Streamable HTTP session
 **Goal:** the bridge into Part 2. See MCP's use of SSE next to the Messages API's and notice the `event:` field is always `message`.

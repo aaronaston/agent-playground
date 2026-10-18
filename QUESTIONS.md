@@ -96,3 +96,7 @@ Format: **Q** · **A** (a few lines) · **Changed** (what moved in WALKTHROUGH.m
 **A:** Written: `experiments/00-protocols/websockets-primer.md`, built around the repo's hand-rolled echo server and a new `ws_handshake.py` that prints real bytes. Core: an HTTP/1.1 GET with `Upgrade: websocket` gets a `101 Switching Protocols`, after which the socket carries framed messages both ways and is no longer HTTP. Frames have a 2-byte header (FIN, opcode, MASK, length); client frames are XOR-masked to defeat proxy cache poisoning; ping/pong/close are control frames; no reconnect or replay in the browser API. Over HTTP/2 needs RFC 8441, so most WebSockets still cost a dedicated HTTP/1.1 connection; through an L7 proxy they become a pinned byte pipe.
 **Changed:** step 1.4 now points at the primer and the new script.
 
+**Q: I have an OpenAI key in `experiments/.env`. Can we switch providers for step 1.5?**
+**A:** Yes; the step is about seeing a real LLM SSE stream and the Responses API streams the same way. The key in the file was missing its leading `s` (`k-proj-...`), which the 401 message made visible; restored it. Capture and annotation are in `experiments/00-protocols/experiments/captures/`. Notable: `event:` names the type (unlike MCP), `sequence_number` instead of `id:`, an `obfuscation` padding field against token-length side channels, usage only in `response.completed`.
+**Changed:** step 1.5 reworded to "LLM API stream" and marked done; the script now targets OpenAI and reads the shared `experiments/.env`.
+
