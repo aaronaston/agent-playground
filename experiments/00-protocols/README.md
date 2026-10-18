@@ -5,8 +5,10 @@ This folder is the hands-on start of **Track B1** in [`STUDY_GUIDE.md`](../../ST
 ## Layout
 
 - `notes.md` — protocol concepts, tradeoffs, and references.
+- `websockets-primer.md` — what a WebSocket is, byte by byte, and how it compares with SSE.
 - `experiments/sse_server.py`, `sse_client.py`, and `sse_demo.html` — a small SSE stream, Python reader, and browser client using the native `EventSource` API.
 - `experiments/websocket_server.py` and `websocket_demo.html` — a local WebSocket echo server and browser client.
+- `experiments/ws_handshake.py` — talks to the echo server by hand and prints the handshake, a masked frame, the echo, and the close.
 - `experiments/compare_http.py` — one request each over HTTP/1.1 and HTTP/2: shows which version ALPN negotiated.
 - `experiments/multiplex_demo.py` — several requests at once: connection count, the browser's six-per-host cap, and head-of-line blocking.
 - `experiments/multiplex_viz.py` — renders a `--json` capture from `multiplex_demo.py` as an HTML timeline (lanes per TCP connection, bars split into connect / TLS / wait / body).

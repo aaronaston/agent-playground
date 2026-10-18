@@ -91,3 +91,8 @@ Format: **Q** · **A** (a few lines) · **Changed** (what moved in WALKTHROUGH.m
 **Q: What is ALPN?**
 **A:** Application-Layer Protocol Negotiation (RFC 7301), a TLS extension. The client lists protocols it can speak in its ClientHello (`h2`, `http/1.1`), the server names its pick in the ServerHello, and the chosen protocol starts as soon as the handshake ends. Per connection, before any request, which is why a failed request still reported HTTP/2. Created because HTTP/2 over TLS has no upgrade step. An L7 proxy does ALPN with the client; the origin is not involved. Plaintext HTTP/2 (`h2c`) has no ALPN, hence `--http2-prior-knowledge`. Check with `openssl s_client -alpn h2,http/1.1 -connect host:443`.
 **Changed:** nothing.
+
+**Q: Is there a primer on WebSockets? I don't know much about them.**
+**A:** Written: `experiments/00-protocols/websockets-primer.md`, built around the repo's hand-rolled echo server and a new `ws_handshake.py` that prints real bytes. Core: an HTTP/1.1 GET with `Upgrade: websocket` gets a `101 Switching Protocols`, after which the socket carries framed messages both ways and is no longer HTTP. Frames have a 2-byte header (FIN, opcode, MASK, length); client frames are XOR-masked to defeat proxy cache poisoning; ping/pong/close are control frames; no reconnect or replay in the browser API. Over HTTP/2 needs RFC 8441, so most WebSockets still cost a dedicated HTTP/1.1 connection; through an L7 proxy they become a pinned byte pipe.
+**Changed:** step 1.4 now points at the primer and the new script.
+

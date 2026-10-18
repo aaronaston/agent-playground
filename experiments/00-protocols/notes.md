@@ -29,6 +29,8 @@ SSE is a defined event format on an HTTP response. Chunked transfer encoding is 
 
 ## WebSockets
 
+For the protocol itself, byte by byte, see [`websockets-primer.md`](websockets-primer.md).
+
 WebSockets establish a persistent connection that carries messages in both directions. A browser starts with a handshake over HTTP; after the upgrade, WebSocket frames carry text or binary messages as well as control frames such as ping, pong, and close. Both peers can send without creating a new HTTP request for every message.
 
 Compared with SSE:

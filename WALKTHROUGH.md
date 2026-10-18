@@ -59,8 +59,8 @@ Record in notes.md: the three numbers from B and C, and one sentence each on wha
 
 Done when: you can say why a page that opens eight SSE streams behaves differently over HTTP/1.1 and HTTP/2, and where in the connection lifecycle the version is decided.
 
-### [ ] 1.4 SSE vs WebSockets side by side (optional; skip if the protocol appetite is gone)
-**Goal:** see the one structural difference: WebSockets upgrade away from HTTP; SSE never leaves it.
+### [ ] 1.4 SSE vs WebSockets side by side (optional)
+**Goal:** see the one structural difference: WebSockets upgrade away from HTTP; SSE never leaves it. Read `experiments/00-protocols/websockets-primer.md` first; then `python experiments/ws_handshake.py` against the running echo server shows the handshake and the frame bytes.
 
 Do:
 ```bash
