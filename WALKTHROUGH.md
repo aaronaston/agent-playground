@@ -6,9 +6,9 @@ The linear path through the [study guide](STUDY_GUIDE.md). The guide says *what*
 
 | | |
 |---|---|
-| **Now** | Step 1.3 – HTTP/1.1 vs HTTP/2 (run `multiplex_demo.py`; the first version of this step could not show the differences) |
-| **Next** | Step 1.4 – SSE vs WebSockets side by side |
-| **Last done** | Step 1.2 – Tiny SSE server with resume (2026-10-17) |
+| **Now** | Step 1.5 – Capture a Messages API stream (one curl; the first real SSE stream from an LLM API) |
+| **Next** | Step 1.6 – Capture an MCP Streamable HTTP session (doubles as the start of Part 2) |
+| **Last done** | Step 1.3 – HTTP/1.1 vs HTTP/2, with the multiplexing timeline and the L7/L4 load-balancer demo (2026-10-18) |
 
 Legend: `[x]` done · `[~]` in progress · `[ ]` not started
 
@@ -18,6 +18,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` not started
 |---|---|---|
 | 2026-10-17 | 1.1 | SSE is a line-oriented text format on an ordinary HTTP response; `curl -N` shows the whole thing. |
 | 2026-10-17 | 1.2 | `Last-Event-ID` is a request header the browser adds on reconnect; resume only means something if events exist independently of connections. |
+| 2026-10-18 | 1.3 | ALPN picks the version before any request; HTTP/2 multiplexes streams on one connection so the six-per-host cap and head-of-line blocking disappear; an L7 proxy routes per request, so one client connection never implies one backend. |
 
 ---
 
@@ -31,7 +32,7 @@ Done. See `experiments/sse_server.py` and `curl -N http://127.0.0.1:8000/events`
 ### [x] 1.2 Tiny SSE server with resume
 Done. Server honours `Last-Event-ID`, returns 204 after the final event. Known limitation, recorded in QUESTIONS.md: the stream is a fixed script, so resume is degenerate.
 
-### [~] 1.3 HTTP/1.1 vs HTTP/2
+### [x] 1.3 HTTP/1.1 vs HTTP/2
 **Goal:** see the differences that matter, which only appear when several requests share a connection: connection count, the browser's per-host cap, and head-of-line blocking. A single request can only show the negotiated version.
 
 Do:
@@ -58,7 +59,7 @@ Record in notes.md: the three numbers from B and C, and one sentence each on wha
 
 Done when: you can say why a page that opens eight SSE streams behaves differently over HTTP/1.1 and HTTP/2, and where in the connection lifecycle the version is decided.
 
-### [ ] 1.4 SSE vs WebSockets side by side
+### [ ] 1.4 SSE vs WebSockets side by side (optional; skip if the protocol appetite is gone)
 **Goal:** see the one structural difference: WebSockets upgrade away from HTTP; SSE never leaves it.
 
 Do:

@@ -78,7 +78,7 @@ Topics:
 Hands-on:
 - [x] Read a raw stream with curl.
 - [x] Implement a tiny SSE endpoint.
-- [ ] Compare one simple endpoint over HTTP/1.1 and HTTP/2.
+- [x] Compare one simple endpoint over HTTP/1.1 and HTTP/2.
 - [ ] Compare the same streaming use case over SSE and WebSockets.
 - [ ] Capture a Messages API stream.
 - [ ] Capture an MCP Streamable HTTP session.
@@ -89,7 +89,7 @@ Done when: I can explain each event in a captured stream and why SSE (not WebSoc
 - [x] SSE wire format understood
 - [x] `curl` can read a raw SSE stream
 - [x] Tiny SSE endpoint implemented
-- [ ] HTTP/1.1 vs HTTP/2 differences observed
+- [x] HTTP/1.1 vs HTTP/2 differences observed
 - [ ] SSE vs WebSockets differences observed
 - [ ] LLM streaming captured
 - [ ] Can explain why SSE is used here instead of WebSockets
