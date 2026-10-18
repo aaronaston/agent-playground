@@ -1,4 +1,4 @@
-MCP Streamable HTTP trace  ·  protocol 2026-07-28  ·  2026-10-18 11:44:10  ·  server 127.0.0.1:8001/mcp
+MCP Streamable HTTP trace  ·  protocol 2026-07-28  ·  2026-10-18 12:55:13  ·  server 127.0.0.1:8000/mcp
 Legend: → sent by client (this script)   ← sent by server, stamped with seconds since the request was sent
 There is no handshake in this protocol version. Every request carries the protocol version, client identity and
 capabilities in params._meta, and mirrors its method into the Mcp-Method header for proxies.
@@ -7,7 +7,7 @@ capabilities in params._meta, and mirrors its method into the Mcp-Method header 
 PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connection
   To show that the unit of the protocol is the request, not the connection.
 ──────────────────────────────────────────────────────────────────────────────────────────
-  [conn #1] opened new TCP connection to 127.0.0.1:8001
+  [conn #1] opened new TCP connection to 127.0.0.1:8000
 
 ──────────────────────────────────────────────────────────────────────────────────────────
 1  ·  MCP server/discover  (optional first call: which versions and capabilities does this server have?)
@@ -16,7 +16,7 @@ PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connec
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
-  → Host: 127.0.0.1:8001
+  → Host: 127.0.0.1:8000
   → Content-Type: application/json
   → Accept: application/json, text/event-stream
   → MCP-Protocol-Version: 2026-07-28
@@ -46,8 +46,8 @@ PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connec
   → }
 
   server → client  (HTTP response)
-  ← +0.001s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:44:10 GMT
+  ← +0.002s HTTP/1.1 200 OK
+  ←         date: Sun, 18 Oct 2026 16:55:13 GMT
   ←         server: uvicorn
   ←         content-length: 343
   ←         content-type: application/json
@@ -91,7 +91,7 @@ PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connec
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
-  → Host: 127.0.0.1:8001
+  → Host: 127.0.0.1:8000
   → Content-Type: application/json
   → Accept: application/json, text/event-stream
   → MCP-Protocol-Version: 2026-07-28
@@ -122,7 +122,7 @@ PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connec
 
   server → client  (HTTP response)
   ← +0.001s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:44:10 GMT
+  ←         date: Sun, 18 Oct 2026 16:55:13 GMT
   ←         server: uvicorn
   ←         content-length: 1239
   ←         content-type: application/json
@@ -227,7 +227,7 @@ PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connec
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
-  → Host: 127.0.0.1:8001
+  → Host: 127.0.0.1:8000
   → Content-Type: application/json
   → Accept: application/json, text/event-stream
   → MCP-Protocol-Version: 2026-07-28
@@ -264,7 +264,7 @@ PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connec
 
   server → client  (HTTP response)
   ← +0.001s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:44:10 GMT
+  ←         date: Sun, 18 Oct 2026 16:55:13 GMT
   ←         server: uvicorn
   ←         content-type: text/event-stream
   ←         cache-control: no-cache, no-transform
@@ -295,7 +295,7 @@ PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connec
   ←              "message": "at 1"
   ←             }
   ←            }
-  ← +1.005s  SSE event #3: event: message
+  ← +1.007s  SSE event #3: event: message
   ←          data: JSON-RPC notification method=notifications/message
   ←            {
   ←             "jsonrpc": "2.0",
@@ -305,7 +305,7 @@ PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connec
   ←              "data": "reached 1"
   ←             }
   ←            }
-  ← +2.008s  SSE event #4: event: message
+  ← +2.006s  SSE event #4: event: message
   ←          data: JSON-RPC notification method=notifications/progress
   ←            {
   ←             "jsonrpc": "2.0",
@@ -317,7 +317,7 @@ PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connec
   ←              "message": "at 2"
   ←             }
   ←            }
-  ← +2.008s  SSE event #5: event: message
+  ← +2.007s  SSE event #5: event: message
   ←          data: JSON-RPC notification method=notifications/message
   ←            {
   ←             "jsonrpc": "2.0",
@@ -327,7 +327,7 @@ PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connec
   ←              "data": "reached 2"
   ←             }
   ←            }
-  ← +2.009s  SSE event #6: event: message
+  ← +2.008s  SSE event #6: event: message
   ←          data: JSON-RPC result for id=3
   ←            {
   ←             "jsonrpc": "2.0",
@@ -352,13 +352,13 @@ PART 1  ·  discovery and the tool list, three requests on ONE keep-alive connec
   ←              }
   ←             }
   ←            }
-  ← +2.009s  [end of chunked body: server finished the response]
+  ← +2.008s  [end of chunked body: server finished the response]
   [conn #1] closed by client after 3 request(s); Part 1 done
 
 ──────────────────────────────────────────────────────────────────────────────────────────
 PART 2  ·  what the server rejects, one fresh connection each
 ──────────────────────────────────────────────────────────────────────────────────────────
-  [conn #2] opened new TCP connection to 127.0.0.1:8001
+  [conn #2] opened new TCP connection to 127.0.0.1:8000
 
 ──────────────────────────────────────────────────────────────────────────────────────────
 4a  ·  tools/list WITHOUT the Mcp-Method header  (expect: 400, HeaderMismatch)
@@ -367,7 +367,7 @@ PART 2  ·  what the server rejects, one fresh connection each
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
-  → Host: 127.0.0.1:8001
+  → Host: 127.0.0.1:8000
   → Content-Type: application/json
   → Accept: application/json, text/event-stream
   → MCP-Protocol-Version: 2026-07-28
@@ -397,7 +397,7 @@ PART 2  ·  what the server rejects, one fresh connection each
 
   server → client  (HTTP response)
   ← +0.001s HTTP/1.1 400 Bad Request
-  ←         date: Sun, 18 Oct 2026 15:44:12 GMT
+  ←         date: Sun, 18 Oct 2026 16:55:15 GMT
   ←         server: uvicorn
   ←         content-length: 119
   ←         content-type: application/json
@@ -412,7 +412,7 @@ PART 2  ·  what the server rejects, one fresh connection each
   ←  }
   ← }
   [conn #2] closed by client after 1 request(s)
-  [conn #3] opened new TCP connection to 127.0.0.1:8001
+  [conn #3] opened new TCP connection to 127.0.0.1:8000
 
 ──────────────────────────────────────────────────────────────────────────────────────────
 4b  ·  tools/list claiming protocol version 2027-01-01  (expect: 400, UnsupportedProtocolVersion with the supported list)
@@ -421,7 +421,7 @@ PART 2  ·  what the server rejects, one fresh connection each
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
-  → Host: 127.0.0.1:8001
+  → Host: 127.0.0.1:8000
   → Content-Type: application/json
   → Accept: application/json, text/event-stream
   → MCP-Protocol-Version: 2027-01-01
@@ -452,7 +452,7 @@ PART 2  ·  what the server rejects, one fresh connection each
 
   server → client  (HTTP response)
   ← +0.001s HTTP/1.1 400 Bad Request
-  ←         date: Sun, 18 Oct 2026 15:44:12 GMT
+  ←         date: Sun, 18 Oct 2026 16:55:15 GMT
   ←         server: uvicorn
   ←         content-length: 150
   ←         content-type: application/json
@@ -473,7 +473,7 @@ PART 2  ·  what the server rejects, one fresh connection each
   ←  }
   ← }
   [conn #3] closed by client after 1 request(s)
-  [conn #4] opened new TCP connection to 127.0.0.1:8001
+  [conn #4] opened new TCP connection to 127.0.0.1:8000
 
 ──────────────────────────────────────────────────────────────────────────────────────────
 4c  ·  HTTP GET on the endpoint  (the 2025 standalone stream; expect: 405, it no longer exists)
@@ -482,14 +482,14 @@ PART 2  ·  what the server rejects, one fresh connection each
 
   client → server  (HTTP request)
   → GET /mcp HTTP/1.1
-  → Host: 127.0.0.1:8001
+  → Host: 127.0.0.1:8000
   → Accept: text/event-stream
   → MCP-Protocol-Version: 2026-07-28
   →
 
   server → client  (HTTP response)
-  ← +0.001s HTTP/1.1 405 Method Not Allowed
-  ←         date: Sun, 18 Oct 2026 15:44:12 GMT
+  ← +0.000s HTTP/1.1 405 Method Not Allowed
+  ←         date: Sun, 18 Oct 2026 16:55:15 GMT
   ←         server: uvicorn
   ←         allow: POST
   ←         content-length: 0
@@ -501,12 +501,12 @@ PART 2  ·  what the server rejects, one fresh connection each
 5  ·  subscriptions/listen: the modern server→client channel
   A POST whose response stream stays open. We open it on conn #L, then on another connection call a tool that changes the tool set, and watch the notification arrive on conn #L.
 ──────────────────────────────────────────────────────────────────────────────────────────
-  [conn #5] opened new TCP connection to 127.0.0.1:8001
+  [conn #5] opened new TCP connection to 127.0.0.1:8000
   [conn #5] request #1 on this connection
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
-  → Host: 127.0.0.1:8001
+  → Host: 127.0.0.1:8000
   → Content-Type: application/json
   → Accept: application/json, text/event-stream
   → MCP-Protocol-Version: 2026-07-28
@@ -540,7 +540,7 @@ PART 2  ·  what the server rejects, one fresh connection each
 
   server → client  (HTTP response; this stream will stay open)
   ← +0.001s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:44:12 GMT
+  ←         date: Sun, 18 Oct 2026 16:55:15 GMT
   ←         server: uvicorn
   ←         content-type: text/event-stream
   ←         cache-control: no-cache, no-transform
@@ -548,7 +548,7 @@ PART 2  ·  what the server rejects, one fresh connection each
   ←         x-accel-buffering: no
   ←         Transfer-Encoding: chunked
   ←
-  ← +0.001s  [conn #5] SSE event: message
+  ← +0.002s  [conn #5] SSE event: message
   ←          data: JSON-RPC notification method=notifications/subscriptions/acknowledged
   ←            {
   ←             "jsonrpc": "2.0",
@@ -562,10 +562,10 @@ PART 2  ·  what the server rejects, one fresh connection each
   ←              }
   ←             }
   ←            }
-  ← +2.004s  [conn #5] quiet: the acknowledgement came, nothing else has happened yet
+  ← +2.003s  [conn #5] quiet: the acknowledgement came, nothing else has happened yet
 
   >>> leaving conn #5 open; now trigger a change from a second connection
-  [conn #6] opened new TCP connection to 127.0.0.1:8001
+  [conn #6] opened new TCP connection to 127.0.0.1:8000
 
 ──────────────────────────────────────────────────────────────────────────────────────────
 5b  ·  MCP tools/call announce_change  (the server will push tools/list_changed to listeners)
@@ -574,7 +574,7 @@ PART 2  ·  what the server rejects, one fresh connection each
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
-  → Host: 127.0.0.1:8001
+  → Host: 127.0.0.1:8000
   → Content-Type: application/json
   → Accept: application/json, text/event-stream
   → MCP-Protocol-Version: 2026-07-28
@@ -607,8 +607,8 @@ PART 2  ·  what the server rejects, one fresh connection each
   → }
 
   server → client  (HTTP response)
-  ← +0.002s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:44:14 GMT
+  ← +0.003s HTTP/1.1 200 OK
+  ←         date: Sun, 18 Oct 2026 16:55:17 GMT
   ←         server: uvicorn
   ←         content-length: 272
   ←         content-type: application/json
@@ -640,7 +640,7 @@ PART 2  ·  what the server rejects, one fresh connection each
   [conn #6] closed by client after 1 request(s)
 
   >>> back to conn #5: did anything arrive on the listen stream?
-  ← +2.007s  [conn #5] SSE event: message
+  ← +2.009s  [conn #5] SSE event: message
   ←          data: JSON-RPC notification method=notifications/tools/list_changed
   ←            {
   ←             "jsonrpc": "2.0",
@@ -658,7 +658,7 @@ PART 2  ·  what the server rejects, one fresh connection each
 6  ·  a tool that needs the user: MRTR (multi round-trip request)
   Call weather with no arguments. The server cannot ask the client anything directly in this protocol, so it ends the response with resultType input_required, packs its position into requestState, and stops. The client collects the answer and retries the same call with inputResponses and the state echoed back.
 ──────────────────────────────────────────────────────────────────────────────────────────
-  [conn #7] opened new TCP connection to 127.0.0.1:8001
+  [conn #7] opened new TCP connection to 127.0.0.1:8000
 
 ──────────────────────────────────────────────────────────────────────────────────────────
 6a  ·  MCP tools/call weather, no arguments  (expect: input_required with an elicitation/create inside)
@@ -667,7 +667,7 @@ PART 2  ·  what the server rejects, one fresh connection each
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
-  → Host: 127.0.0.1:8001
+  → Host: 127.0.0.1:8000
   → Content-Type: application/json
   → Accept: application/json, text/event-stream
   → MCP-Protocol-Version: 2026-07-28
@@ -700,13 +700,13 @@ PART 2  ·  what the server rejects, one fresh connection each
   → }
 
   server → client  (HTTP response)
-  ← +0.010s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:44:16 GMT
+  ← +0.005s HTTP/1.1 200 OK
+  ←         date: Sun, 18 Oct 2026 16:55:19 GMT
   ←         server: uvicorn
-  ←         content-length: 791
+  ←         content-length: 786
   ←         content-type: application/json
   ←
-  ← body (791 bytes, application/json): JSON-RPC result for id=7
+  ← body (786 bytes, application/json): JSON-RPC result for id=7
   ← {
   ←  "jsonrpc": "2.0",
   ←  "id": 7,
@@ -733,7 +733,7 @@ PART 2  ·  what the server rejects, one fresh connection each
   ←     }
   ←    }
   ←   },
-  ←   "requestState": "v1.SMSj4nTNeRCaXQ4HC3cwQ2TemnkBAJ1FpG3b8DJnOO25bV73sF4-IU7DkMzZdRohQncBpOS8Ew7Gqf5vPi5dpC8PCzFbi8fllnudzFv-1Jn2JSJYnIJaxWnpSEWwYqH0pGQBBu8NAL3fFk3Y7QSyWDtvG8RuQYtF0yM-f37QawLbZvTTs3NvxeG5Qxtjy26bLPW6jhK5bWq_J9LrSzGVCjYMS880nlUgD5xnWatLJS91gC3O1s-Gqaj5QZQmGDOP95fABSFqSeuO9-RPkrCtArbW-BF27zocbhpxyoWT-fhMwWy-ParjrYjz9AQLy2WuRCd0STy2hR0xDvtMUSWsyeKlZMC5",
+  ←   "requestState": "v1.82v6IobUlGmj2924m0CTyHZRi9M5oxyHfW8jOG3kKDokMnU-wWnpHHdRztLo4hgNsjDSejmjHPfBTcM7HbdZmKc_qgtTT20njvVYCiDnvEWH_WkCL2e5qUuEG7IvUDJwJHy5e5qu8FUBZC36SoVAL215gECQyqHHrIf-H3anZm_uRphVsTh8Q9UE2Wh7xTuaNDSkXsH9ggMMgwyB4k4QEEGmlt02yZ-PF4Tl_Jr-YZbPXuTCG4wG-kPpe3kWhnYeJNvtgQ_7AZv0VkytbhYStfcxV6SKdVWzJMafCU7LS0GPUTuTSuMGc9cWzWRE9pltbtyALIlEK781FZtYAAWDxqc",
   ←   "resultType": "input_required",
   ←   "_meta": {
   ←    "io.modelcontextprotocol/serverInfo": {
@@ -747,9 +747,9 @@ PART 2  ·  what the server rejects, one fresh connection each
 
   >>> the response is finished (HTTP-wise) but the tool is not: resultType='input_required'
   >>> the server asked one question, keyed '__main__:ask_city': elicitation/create "Weather for which city?"
-  >>> requestState is 351 chars of sealed, opaque server state; the client must echo it unchanged
+  >>> requestState is 346 chars of sealed, opaque server state; the client must echo it unchanged
   >>> (the user is now shown the question and types: Toronto)
-  [conn #8] opened new TCP connection to 127.0.0.1:8001
+  [conn #8] opened new TCP connection to 127.0.0.1:8000
 
 ──────────────────────────────────────────────────────────────────────────────────────────
 6b  ·  MCP tools/call weather AGAIN, same arguments + inputResponses + requestState  (expect: log, then the real result)
@@ -758,13 +758,13 @@ PART 2  ·  what the server rejects, one fresh connection each
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
-  → Host: 127.0.0.1:8001
+  → Host: 127.0.0.1:8000
   → Content-Type: application/json
   → Accept: application/json, text/event-stream
   → MCP-Protocol-Version: 2026-07-28
   → Mcp-Method: tools/call
   → Mcp-Name: weather
-  → Content-Length: 833
+  → Content-Length: 828
   →
   → body: JSON-RPC request id=8 method=tools/call
   → {
@@ -782,7 +782,7 @@ PART 2  ·  what the server rejects, one fresh connection each
   →     }
   →    }
   →   },
-  →   "requestState": "v1.SMSj4nTNeRCaXQ4HC3cwQ2TemnkBAJ1FpG3b8DJnOO25bV73sF4-IU7DkMzZdRohQncBpOS8Ew7Gqf5vPi5dpC8PCzFbi8fllnudzFv-1Jn2JSJYnIJaxWnpSEWwYqH0pGQBBu8NAL3fFk3Y7QSyWDtvG8RuQYtF0yM-f37QawLbZvTTs3NvxeG5Qxtjy26bLPW6jhK5bWq_J9LrSzGVCjYMS880nlUgD5xnWatLJS91gC3O1s-Gqaj5QZQmGDOP95fABSFqSeuO9-RPkrCtArbW-BF27zocbhpxyoWT-fhMwWy-ParjrYjz9AQLy2WuRCd0STy2hR0xDvtMUSWsyeKlZMC5",
+  →   "requestState": "v1.82v6IobUlGmj2924m0CTyHZRi9M5oxyHfW8jOG3kKDokMnU-wWnpHHdRztLo4hgNsjDSejmjHPfBTcM7HbdZmKc_qgtTT20njvVYCiDnvEWH_WkCL2e5qUuEG7IvUDJwJHy5e5qu8FUBZC36SoVAL215gECQyqHHrIf-H3anZm_uRphVsTh8Q9UE2Wh7xTuaNDSkXsH9ggMMgwyB4k4QEEGmlt02yZ-PF4Tl_Jr-YZbPXuTCG4wG-kPpe3kWhnYeJNvtgQ_7AZv0VkytbhYStfcxV6SKdVWzJMafCU7LS0GPUTuTSuMGc9cWzWRE9pltbtyALIlEK781FZtYAAWDxqc",
   →   "_meta": {
   →    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
   →    "io.modelcontextprotocol/clientInfo": {
@@ -800,8 +800,8 @@ PART 2  ·  what the server rejects, one fresh connection each
   → }
 
   server → client  (HTTP response)
-  ← +0.004s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:44:16 GMT
+  ← +0.002s HTTP/1.1 200 OK
+  ←         date: Sun, 18 Oct 2026 16:55:19 GMT
   ←         server: uvicorn
   ←         content-type: text/event-stream
   ←         cache-control: no-cache, no-transform
@@ -810,7 +810,7 @@ PART 2  ·  what the server rejects, one fresh connection each
   ←         Transfer-Encoding: chunked
   ←
   ← body: chunked text/event-stream; printing each chunk as it arrives
-  ← +0.004s  SSE event #1: event: message
+  ← +0.002s  SSE event #1: event: message
   ←          data: JSON-RPC notification method=notifications/message
   ←            {
   ←             "jsonrpc": "2.0",
@@ -820,7 +820,7 @@ PART 2  ·  what the server rejects, one fresh connection each
   ←              "data": "looking up Toronto"
   ←             }
   ←            }
-  ← +0.004s  SSE event #2: event: message
+  ← +0.003s  SSE event #2: event: message
   ←          data: JSON-RPC result for id=8
   ←            {
   ←             "jsonrpc": "2.0",
@@ -845,9 +845,9 @@ PART 2  ·  what the server rejects, one fresh connection each
   ←              }
   ←             }
   ←            }
-  ← +0.004s  [end of chunked body: server finished the response]
+  ← +0.003s  [end of chunked body: server finished the response]
   [conn #8] closed by client after 1 request(s)
-  [conn #9] opened new TCP connection to 127.0.0.1:8001
+  [conn #9] opened new TCP connection to 127.0.0.1:8000
 
 ──────────────────────────────────────────────────────────────────────────────────────────
 6c  ·  the same retry with ONE character changed in requestState  (expect: rejected; the seal is checked)
@@ -856,13 +856,13 @@ PART 2  ·  what the server rejects, one fresh connection each
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
-  → Host: 127.0.0.1:8001
+  → Host: 127.0.0.1:8000
   → Content-Type: application/json
   → Accept: application/json, text/event-stream
   → MCP-Protocol-Version: 2026-07-28
   → Mcp-Method: tools/call
   → Mcp-Name: weather
-  → Content-Length: 834
+  → Content-Length: 829
   →
   → body: JSON-RPC request id=9 method=tools/call
   → {
@@ -880,7 +880,7 @@ PART 2  ·  what the server rejects, one fresh connection each
   →     }
   →    }
   →   },
-  →   "requestState": "v1.SMSj4nTNeRCaXQ4HC3cwQ2TemnkBAJ1FpG3b8DJnOO25bV73sF4-IU7DkMzZdRohQncBpOS8Ew7Gqf5vPi5dpC8PCzFbi8fllnudzFv-1Jn2JSJYnIJaxWnpSEWwYqH0pGQBBu8NAL3fFk3Y7QSyWDtvG8RuQYtF0yM-f37QawLbZvTTs3NvxeG5Qxtjy26bLPW6jhK5bWq_J9LrSzGVCjYMS880nlUgD5xnWatLJS91gC3O1s-Gqaj5QZQmGDOP95fABSFqSeuO9-RPkrCtArbW-BF27zocbhpxyoWT-fhMwWy-ParjrYjz9AQLy2WuRCd0STy2hR0xDvtMUSWsyeKlZMC5x",
+  →   "requestState": "v1.82v6IobUlGmj2924m0CTyHZRi9M5oxyHfW8jOG3kKDokMnU-wWnpHHdRztLo4hgNsjDSejmjHPfBTcM7HbdZmKc_qgtTT20njvVYCiDnvEWH_WkCL2e5qUuEG7IvUDJwJHy5e5qu8FUBZC36SoVAL215gECQyqHHrIf-H3anZm_uRphVsTh8Q9UE2Wh7xTuaNDSkXsH9ggMMgwyB4k4QEEGmlt02yZ-PF4Tl_Jr-YZbPXuTCG4wG-kPpe3kWhnYeJNvtgQ_7AZv0VkytbhYStfcxV6SKdVWzJMafCU7LS0GPUTuTSuMGc9cWzWRE9pltbtyALIlEK781FZtYAAWDxqcx",
   →   "_meta": {
   →    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
   →    "io.modelcontextprotocol/clientInfo": {
@@ -898,8 +898,8 @@ PART 2  ·  what the server rejects, one fresh connection each
   → }
 
   server → client  (HTTP response)
-  ← +0.002s HTTP/1.1 400 Bad Request
-  ←         date: Sun, 18 Oct 2026 15:44:16 GMT
+  ← +0.001s HTTP/1.1 400 Bad Request
+  ←         date: Sun, 18 Oct 2026 16:55:19 GMT
   ←         server: uvicorn
   ←         content-length: 134
   ←         content-type: application/json
@@ -917,7 +917,7 @@ PART 2  ·  what the server rejects, one fresh connection each
   ←  }
   ← }
   [conn #9] closed by client after 1 request(s)
-  [conn #10] opened new TCP connection to 127.0.0.1:8001
+  [conn #10] opened new TCP connection to 127.0.0.1:8000
 
 ──────────────────────────────────────────────────────────────────────────────────────────
 6d  ·  the retry where the user DECLINED to answer  (expect: the call ends without weather)
@@ -926,13 +926,13 @@ PART 2  ·  what the server rejects, one fresh connection each
 
   client → server  (HTTP request)
   → POST /mcp HTTP/1.1
-  → Host: 127.0.0.1:8001
+  → Host: 127.0.0.1:8000
   → Content-Type: application/json
   → Accept: application/json, text/event-stream
   → MCP-Protocol-Version: 2026-07-28
   → Mcp-Method: tools/call
   → Mcp-Name: weather
-  → Content-Length: 803
+  → Content-Length: 798
   →
   → body: JSON-RPC request id=10 method=tools/call
   → {
@@ -947,7 +947,7 @@ PART 2  ·  what the server rejects, one fresh connection each
   →     "action": "decline"
   →    }
   →   },
-  →   "requestState": "v1.SMSj4nTNeRCaXQ4HC3cwQ2TemnkBAJ1FpG3b8DJnOO25bV73sF4-IU7DkMzZdRohQncBpOS8Ew7Gqf5vPi5dpC8PCzFbi8fllnudzFv-1Jn2JSJYnIJaxWnpSEWwYqH0pGQBBu8NAL3fFk3Y7QSyWDtvG8RuQYtF0yM-f37QawLbZvTTs3NvxeG5Qxtjy26bLPW6jhK5bWq_J9LrSzGVCjYMS880nlUgD5xnWatLJS91gC3O1s-Gqaj5QZQmGDOP95fABSFqSeuO9-RPkrCtArbW-BF27zocbhpxyoWT-fhMwWy-ParjrYjz9AQLy2WuRCd0STy2hR0xDvtMUSWsyeKlZMC5",
+  →   "requestState": "v1.82v6IobUlGmj2924m0CTyHZRi9M5oxyHfW8jOG3kKDokMnU-wWnpHHdRztLo4hgNsjDSejmjHPfBTcM7HbdZmKc_qgtTT20njvVYCiDnvEWH_WkCL2e5qUuEG7IvUDJwJHy5e5qu8FUBZC36SoVAL215gECQyqHHrIf-H3anZm_uRphVsTh8Q9UE2Wh7xTuaNDSkXsH9ggMMgwyB4k4QEEGmlt02yZ-PF4Tl_Jr-YZbPXuTCG4wG-kPpe3kWhnYeJNvtgQ_7AZv0VkytbhYStfcxV6SKdVWzJMafCU7LS0GPUTuTSuMGc9cWzWRE9pltbtyALIlEK781FZtYAAWDxqc",
   →   "_meta": {
   →    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
   →    "io.modelcontextprotocol/clientInfo": {
@@ -965,8 +965,8 @@ PART 2  ·  what the server rejects, one fresh connection each
   → }
 
   server → client  (HTTP response)
-  ← +0.003s HTTP/1.1 200 OK
-  ←         date: Sun, 18 Oct 2026 15:44:16 GMT
+  ← +0.002s HTTP/1.1 200 OK
+  ←         date: Sun, 18 Oct 2026 16:55:19 GMT
   ←         server: uvicorn
   ←         content-length: 304
   ←         content-type: application/json

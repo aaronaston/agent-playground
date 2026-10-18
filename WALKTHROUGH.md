@@ -6,7 +6,7 @@ The linear path through the [study guide](STUDY_GUIDE.md). The guide says *what*
 
 | | |
 |---|---|
-| **Now** | Step 2.1 – the current protocol from the spec, with the 1.6 trace open beside it |
+| **Now** | Step 2.1 – read the spec against the trace, using `experiments/02-mcp/notes/trace-to-spec.md` |
 | **Next** | Step 2.2 – finish the transport pair: stdio by hand, and an SDK client capture |
 | **Last done** | Step 1.6 and the B1 checkpoint – MCP server built, both protocol families captured; Part 1 complete (2026-10-18) |
 
@@ -98,7 +98,9 @@ Working directory: `experiments/02-mcp/`. Spec: https://modelcontextprotocol.io/
 
 **Latest first.** Everything in this part is done against 2026-07-28. Earlier revisions appear only where you need to recognise them in the wild (the `--legacy` trace, the changelog reading in 2.1).
 
-### [ ] 2.1 The current protocol, then where it came from
+### [~] 2.1 The current protocol, then where it came from
+Reading guide and the trace-to-spec map: `experiments/02-mcp/notes/trace-to-spec.md`. It gives a reading order (about two hours), a table mapping every line of the trace to the spec sentence behind it, four places where the SDK differs from the spec's examples, and the self-check with answers folded away.
+
 Read the 2026-07-28 spec's Basic section (lifecycle, `_meta`, transports, MRTR, subscriptions) with the trace from 1.6 open beside it; match every message in the trace to its section. Then read the 2026-07-28 changelog once, to know what you would see on an older server and why it was removed. The earlier changelogs are optional background.
 
 Done when: you can name every message in the trace from the spec, and say in one sentence each what sessions, the GET stream, resumability and server-initiated requests were replaced with.
